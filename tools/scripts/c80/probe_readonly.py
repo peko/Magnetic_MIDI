@@ -2,8 +2,8 @@
 import sys
 import time
 
-sys.path.insert(0, __file__.rsplit("/", 1)[0])
-from c80 import C80, hexdump, packet  # noqa: E402
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
+from magmidi.devices.c80 import C80, hexdump, packet  # noqa: E402
 
 with C80() as kb:
     print("device:", kb.path)

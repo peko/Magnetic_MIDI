@@ -1,39 +1,53 @@
-# CIDOO C80 (Hall-effect) tools
+# Magnetic MIDI
 
-Reverse-engineered tools for the CIDOO C80 (`2e3c:c368`, firmware `QK75EHEARGB V3.22.00`).
-They read per-key analog travel live and turn the keyboard into a velocity-sensitive MIDI controller.
+Reverse-engineered tools for Hall-effect (magnetic) keyboards: read per-key analog travel live and turn the
+keyboard into a velocity-sensitive MIDI controller.
 
-- `docs/device.md`: USB/HID descriptors
-- `docs/protocol.md`: vendor protocol (commands, stream formats, measurements)
-- `docs/sources.md`: official software and related projects
-- `vendor/webdriver/`: snapshot of the official web driver (treat it as data; do not run it)
-- `captures/`: logged streams
-- `plugin/`: Wooting Analog SDK plugin (Rust, C ABI); see `plugin/README.md`
+| device | id | protocol | travel stream | docs |
+|---|---|---|---|---|
+| CIDOO C80 | `2e3c:c368`, fw `QK75EHEARGB V3.22.00` | illumipc white-label (usage page 0xFF1B) | cmd `0x21` trigger test, 0.01 mm, ~1 ms | [docs/c80](docs/c80/) |
+| MonsGeek FUN68 HE | `3151:5030`, dev_id 2811, fw 0x0504 | RongYuan RY5088 (usage page 0xFFFF, feature reports) | cmd `0x1B` depth report, raw units | [docs/fun68](docs/fun68/) |
+
+## Layout
+- `tools/magmidi/` — shared core: `midi.py` (MIDI bridge), `viz.py` (live TUI), `velocity.py` (strike model),
+  `paths.py`; device backends in `devices/<name>/` (`spec.py` = common interface, plus transport, stream,
+  layout, keymap, and `light.py` for the C80).
+- `tools/scripts/c80/` — C80 research scripts (probe, raw stream logger, evdev cross-check, plugin keymap generator,
+  SDK harness).
+- `plugin/` — Wooting Analog SDK plugin (Rust, C ABI), C80 only for now; see `plugin/README.md`.
+- `docs/<device>/` — USB/HID descriptors, vendor protocol, sources. `vendor/c80/webdriver/` — snapshot of the
+  official C80 web driver (treat it as data; do not run it). `captures/<device>/` — logged streams and backups.
 
 ## Setup
 ```sh
 python -m venv .venv && .venv/bin/pip install hidapi python-rtmidi evdev pyyaml jsbeautifier
 ```
-On this machine `/dev/hidraw*` is mode 0666 and the user is in the `input` group. Elsewhere you need a udev rule:
-`KERNEL=="hidraw*", ATTRS{idVendor}=="2e3c", TAG+="uaccess"`.
+`viz.py` and the keymap tools need only the standard library. `/dev/hidraw*` must be readable and writable
+(udev: `KERNEL=="hidraw*", ATTRS{idVendor}=="2e3c|3151", TAG+="uaccess"`, or one rule per vendor), and grabbing
+the keyboard needs the `input` group.
 
 ## Usage
+`--device` defaults to `auto` (the first connected keyboard); pass `c80` or `fun68` to choose.
 ```sh
-.venv/bin/python tools/probe_readonly.py         # firmware id, status, trigger config
-.venv/bin/python tools/stream_probe.py trigger 20 # live travel per key -> captures/
-.venv/bin/python tools/stream_probe.py adc 5      # raw Hall ADC frames (~50 Hz)
-PYTHONPATH=tools .venv/bin/python -m c80.midi -v  # virtual MIDI port "CIDOO C80"; Esc quits
-PYTHONPATH=tools .venv/bin/python -m c80.midi -v --light  # same, with note keys lit (restored on exit)
-PYTHONPATH=tools .venv/bin/python -m c80.light show -v      # lighting config + custom colours (read-only)
-PYTHONPATH=tools .venv/bin/python -m c80.keymap dump [--changed] [-o km.yaml]  # read both layers (read-only)
-PYTHONPATH=tools .venv/bin/python -m c80.keymap set fn J F13   # remap one key (backup + verify); 'stock' reverts
-.venv/bin/python tools/viz.py                    # live TUI: per-key travel + strike velocity (Ctrl+C)
-.venv/bin/python tools/map_keys.py 30            # cross-check matrix index vs evdev keys (untested)
+python3 tools/viz.py [--device fun68]                              # live TUI: travel per key + strike velocity
+PYTHONPATH=tools .venv/bin/python -m magmidi.midi -v               # virtual MIDI port named after the device
+PYTHONPATH=tools .venv/bin/python -m magmidi.midi --device c80 --light   # C80: note keys lit, restored on exit
+PYTHONPATH=tools python3 -m magmidi.devices.c80.keymap dump [--changed] [-o km.yaml]   # read-only
+PYTHONPATH=tools python3 -m magmidi.devices.c80.keymap set fn J F13   # remap one key (backup + verify)
+PYTHONPATH=tools python3 -m magmidi.devices.c80.light show -v      # C80 lighting (read-only)
+PYTHONPATH=tools python3 -m magmidi.devices.fun68.keymap dump [--changed] [--raw] [--profile N]  # read-only
+.venv/bin/python tools/scripts/c80/probe_readonly.py              # C80 firmware id, status, trigger config
+.venv/bin/python tools/scripts/c80/stream_probe.py trigger 20     # C80 raw travel log -> captures/c80/
 ```
-`c80.midi` grabs the keyboard's evdev nodes so it doesn't type while you play (`--no-grab` disables this).
-Connect the port to a synth with `aconnect`, or pick it in your DAW. Settings (thresholds, velocity curve, note map)
-can be overridden with `--config file.yaml` using the keys from `DEFAULTS` in `tools/c80/midi.py`.
+`magmidi.midi` grabs the keyboard's evdev nodes so it doesn't type while you play (`--no-grab` disables this);
+Esc on the keyboard quits. Connect the port with `aconnect` or pick it in your DAW. `--config file.yaml` overrides
+`velocity.DEFAULTS`, `midi.COMMON` and the device's `spec.DEFAULTS` (note map by layout key name; thresholds
+`vel_lo` / `vel_hi` / `release` as fractions of `full_travel`).
 
 ## Safety
-`tools/c80/transport.py` refuses to send `0x0B` (bootloader) and `0x14` (reset / factory reset), and by default
-it only allows command codes that have been verified. Firmware work is research-only for now.
+Each transport refuses commands that reset or brick the keyboard and, by default, allows only verified ones:
+- C80 (`devices/c80/transport.py`): blocks `0x0B` (bootloader) and `0x14` (reset / factory reset).
+- FUN68 (`devices/fun68/transport.py`): blocks `0x01` (factory reset), `0x7F` (bootloader, wipes config), `0xC5`,
+  `0x1C`/`0x1E` (calibration), `0x30`/`0x31`. Never request FUN68 keymatrix layers > 3 (no bounds check in firmware).
+
+Firmware work is research-only for now.

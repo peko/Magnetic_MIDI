@@ -14,13 +14,13 @@ import time
 import evdev
 from evdev import ecodes
 
-sys.path.insert(0, __file__.rsplit("/", 1)[0])
-from c80 import C80  # noqa: E402
-from c80.stream import TravelStream  # noqa: E402
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
+from magmidi.devices.c80 import C80  # noqa: E402
+from magmidi.devices.c80.stream import TravelStream  # noqa: E402
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
+from magmidi.paths import C80_LAYOUT_JSON, ROOT, captures  # noqa: E402
 secs = float(sys.argv[1]) if len(sys.argv) > 1 else 30
-layout = {int(k["index"]): k for k in json.load(open(ROOT / "vendor/webdriver/config/keys/QK75EHEARGB.json"))["keys"]}
+layout = {int(k["index"]): k for k in json.load(open(C80_LAYOUT_JSON))["keys"]}
 
 downs = []  # (t, evdev keyname)
 stop = threading.Event()
@@ -68,4 +68,4 @@ for name, c in sorted(votes.items(), key=lambda kv: kv[1].most_common(1)[0][0]):
     hid_name = js.get("name", "?")
     print(f"  idx {idx:3d} (r{idx // 22} c{idx % 22:2d})  evdev {name:<16} json '{hid_name}' x{n}")
 json.dump({n: c.most_common(1)[0][0] for n, c in votes.items()},
-          open(ROOT / f"captures/keymap_learned_{time.strftime('%Y%m%d_%H%M%S')}.json", "w"), indent=1)
+          open(captures("c80") / f"keymap_learned_{time.strftime('%Y%m%d_%H%M%S')}.json", "w"), indent=1)

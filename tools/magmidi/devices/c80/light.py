@@ -1,8 +1,8 @@
 """C80 lighting: global config and per-key custom colours (protocol from the web driver's light controller).
 
-    PYTHONPATH=tools .venv/bin/python -m c80.light show               # config, mode list, custom colours (read-only)
-    PYTHONPATH=tools .venv/bin/python -m c80.light notes [--config midi.yaml]   # colour the MIDI note keys
-    PYTHONPATH=tools .venv/bin/python -m c80.light restore captures/light_backup_<ts>.json
+    PYTHONPATH=tools .venv/bin/python -m magmidi.devices.c80.light show               # config, mode list, custom colours (read-only)
+    PYTHONPATH=tools .venv/bin/python -m magmidi.devices.c80.light notes [--config midi.yaml]   # colour the MIDI note keys
+    PYTHONPATH=tools .venv/bin/python -m magmidi.devices.c80.light restore captures/c80/light_backup_<ts>.json
 
 Protocol:
     [0A 00]                  -> mode list: data = modes..., speed_max, brightness_max (+2 more); custom = mode 10 if
@@ -24,7 +24,7 @@ import time
 
 from .transport import C80, packet
 
-ROOT = pathlib.Path(__file__).resolve().parents[2]
+from ...paths import C80_LAYOUT_JSON, ROOT, VENDOR_C80, captures
 N_KEYS = 132
 PAGE_KEYS = 18
 N_PAGES = 8
@@ -121,7 +121,7 @@ class NoteLighting:
         layer = get_custom_layer(kb) or 0
         old = read_custom(kb, layer)
         self.backup = {"config": cfg, "layer": layer, "colours": old.hex()}
-        bak = ROOT / f"captures/light_backup_{time.strftime('%Y%m%d_%H%M%S')}.json"
+        bak = captures("c80") / f"light_backup_{time.strftime('%Y%m%d_%H%M%S')}.json"
         bak.write_text(json.dumps(self.backup, indent=1))
         kb.allow_unsafe = True
         acked = write_custom(kb, layer, self.colours)
@@ -147,7 +147,7 @@ def restore(kb: C80, backup, verbose=True):
 
 def _layout():
     return {k["name"]: int(k["index"]) for k in
-            json.load(open(ROOT / "vendor/webdriver/config/keys/QK75EHEARGB.json"))["keys"]}
+            json.load(open(C80_LAYOUT_JSON))["keys"]}
 
 
 def cmd_show(args):
@@ -164,12 +164,12 @@ def cmd_show(args):
 
 
 def cmd_notes(args):
-    from .midi import load_config
-    colours = note_colours(load_config(args.config), _layout())
+    from ...midi import load_config
+    colours = note_colours(load_config("c80", args.config), _layout())
     with C80() as kb:
         nl = NoteLighting(kb, colours, args.brightness)
         nl.__enter__()
-        print("note lighting stays on; undo with: python -m c80.light restore <backup file above>")
+        print("note lighting stays on; undo with: python -m magmidi.devices.c80.light restore <backup file above>")
 
 
 def cmd_restore(args):

@@ -181,7 +181,7 @@ MODALIAS=hid:b0003g0001v00002E3Cp0000C368
 ## Built-in Fn functions (from the printed C80 manual)
 Scans of the manual: [page 1](manual/c80_manual_p1.png) (layout, knob, lighting, system), [page 2](manual/c80_manual_p2.png) (multimedia, Mac, misc).
 These live in firmware and are **not** visible via `0x18` (the Fn layer reads back as zeros). Any of them can be overridden
-by writing a Fn-layer entry (`c80.keymap set fn <key> <action>`). `0x0E` reports only Fn itself as locked.
+by writing a Fn-layer entry (`magmidi.devices.c80.keymap set fn <key> <action>`). `0x0E` reports only Fn itself as locked.
 
 | Combination | Function |
 |---|---|
