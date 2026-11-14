@@ -23,6 +23,7 @@ On this machine `/dev/hidraw*` is mode 0666 and the user is in the `input` group
 .venv/bin/python tools/stream_probe.py trigger 20 # live travel per key -> captures/
 .venv/bin/python tools/stream_probe.py adc 5      # raw Hall ADC frames (~50 Hz)
 PYTHONPATH=tools .venv/bin/python -m c80.midi -v  # virtual MIDI port "CIDOO C80"; Esc quits
+.venv/bin/python tools/viz.py                    # live TUI: per-key travel + strike velocity (Ctrl+C)
 .venv/bin/python tools/map_keys.py 30            # cross-check matrix index vs evdev keys (untested)
 ```
 `c80.midi` grabs the keyboard's evdev nodes so it doesn't type while you play (`--no-grab` disables this).
