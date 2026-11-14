@@ -1,4 +1,4 @@
-"""Generate plugin/src/keymap.rs (matrix index -> HID usage) from the web-driver layout JSON."""
+"""Generate plugin/c80/src/keymap.rs (matrix index -> HID usage) from the web-driver layout JSON."""
 import json
 import pathlib
 import sys
@@ -18,5 +18,5 @@ src = (
     "// (matrix index = row*22+col, HID usage). Keys without a HID usage get 0x0200+index.\n"
     f"pub const KEYMAP: [(u8, u16); {len(rows)}] = [\n" + "\n".join(rows) + "\n];\n"
 )
-(ROOT / "plugin/src/keymap.rs").write_text(src)
+(ROOT / "plugin/c80/src/keymap.rs").write_text(src)
 print(f"wrote {len(rows)} keys")
