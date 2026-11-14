@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Online Keyboard Driver &amp; Config Tool | Key Remapping · RGB Lighting · Macros</title>
+  <meta name="description" content="Web-based keyboard driver: no installation required. Connect your device to customize key remapping, RGB lighting effects, macro commands and magnetic switch actuation points. Supports multiple profiles, factory reset and config import/export for a wide range of Hall effect and mechanical keyboards." />
+  <style>
+    html, body { margin: 0; min-height: 100vh; background: #0e1016; }
+    #app { min-height: 100vh; }
+    .boot-loading {
+      position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: #0e1016;
+    }
+    .boot-spinner {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, 0.12); border-top-color: #5589ff;
+      animation: boot-spin 1s linear infinite;
+    }
+    @keyframes boot-spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="app"><div class="boot-loading"><div class="boot-spinner"></div></div></div>
+  <script>
+  (function(){
+    var KEY='versionSwitch.current';
+    // 站点版本策略：由 src/config/version-policy.json 在构建期注入成字面量，
+    // 页面侧 js/version-switch.js 用同一份（下面挂到 window 上让它优先复用宿主这份）。
+    var POLICY={"versions":{"v1":"v1.html","v2":"v2.html"},"default":["v2","v1"],"domains":{"downloads.nsycagaming.com":["v2"],"keycool.vip":["v2"],"wraith.software":["v1"],"varosoftware.com":["v1"],"tryhard-software.com":["v1"],"glick.illumipc.com":["v1","v2"]}};
+    window.__VERSION_POLICY__=POLICY;
+    var VERSIONS=POLICY.versions;
+    // 域名策略：value 是该域名允许的版本列表（第一个 = 本机没记录选择时的默认版本）。
+    // 只写一个 = 只跑该版本；写多个 = 多版并存、页内出切换按钮。
+    // hostname 子串匹配，命中多条取最长（与 brands.ts 的品牌匹配一致）。
+    function allowedFor(hostname){
+      var rules=POLICY.domains||{}, best=null, bestLen=-1;
+      for (var d in rules){
+        if(!rules.hasOwnProperty(d)) continue;
+        if (hostname.indexOf(d)>=0 && d.length>bestLen){ best=rules[d]; bestLen=d.length; }
+      }
+      if (best && best.length) return best;
+      return (POLICY.default && POLICY.default.length) ? POLICY.default : ['v2'];
+    }
+    // 纯版本入口：URL hash 首段就是版本 id（#/v2、#/v3 …），命中后强制该版本、不显示切换按钮。
+    // 版本 id 从 versions 里取，以后加 v3 不用改这里。
+    function entryVersion(){
+      var h=String(location.hash||'').replace(/^#/,'');
+      while(h.charAt(0)==='/') h=h.slice(1);
+      var seg=h.split(/[?#]/)[0].split('/')[0];
+      return seg && VERSIONS.hasOwnProperty(seg) ? seg : '';
+    }
+    var host=location.hostname||'';
+    // 按域名提前算品牌标题：v2 应用 JS 跑起来之前先把 <title> 定好，
+    // 消除 loading 期间的裸标题闪烁，并让 SEO 爬虫从首字节就拿到正确品牌标题。
+    // 域名→标题映射由构建期从 src/config/brands.ts 注入（镜像 BRAND_TABLE.matches/title，与全站统一）。
+    var BRAND_TITLE_MAP = [["kzzi.com","kzzi"],["wraith.software","Wraith"],["qwertykey.eu","Qwerty"],["varosoftware.com","VARO SW"],["aulacn.com","AULA online device"],["storia-set-up.com","Storia-set-up"],["qmk.center","QMK"],["engine1.buruberi.com","buruberi"],["machenike.com","MachenikeDriver"],["ess75.pressplayid.com","Essential75 HE by Press Play"],["he.pressplayid.com","Pressplayid HE by Press Play"],["fantechworld.com","FANTECH"],["tryhard-software.com","Tryhard"],["silvermonkey.com","SMX Software"],["glick","G-clicker"],["cidoo","Cidoo"],["keyboard.klassegear.software","klassegear"],["nsycagaming.com","nsycagaming"],["keycool.vip","KEYCOOL HUB"],["kbdiy.vip","kbdiy"],["itavaro.com","itavaro"],["millersoftware.cn","millersoftware"],["maroc4gaming.net","maroc4gaming"],["app.zfgear.com","ZF APP"],["drv.4fangaming.ru","4FAN"]];
+    var _brandTitle='';
+    for (var _bi=0; _bi<BRAND_TITLE_MAP.length; _bi++){
+      if (host.indexOf(BRAND_TITLE_MAP[_bi][0])>=0){ _brandTitle=BRAND_TITLE_MAP[_bi][1]; break; }
+    }
+    // 标题为空 = 不注入，保留 <head> 里的静态兜底标题
+    if (_brandTitle){
+      document.title = _brandTitle + ' Online Keyboard Driver & Config Tool | Key Remapping · RGB Lighting · Macros';
+    }
+    var allowed=allowedFor(host);
+    var locked=allowed.length===1;
+    var entry=entryVersion();
+    // 入口版本必须在该域名允许的列表里；不在就按普通访问走
+    var entryAllowed=!!entry && allowed.indexOf(entry)>=0;
+    // 纯版本入口 / 只跑单版本的域名：页内 version-switch.js 不再注入切换按钮
+    var hideSwitch=entryAllowed || locked;
+    if(hideSwitch) window.__versionSwitchHidden=true;
+    // 构建时替换为本次 app.js 的 mtime：版本页（v1.html/v2.html）按构建戳请求，
+    // 新构建 = 新 URL，避免浏览器命中旧版本页里指向的旧 app.js。
+    var BUILD_STAMP='1794378244934';
+    var cur;
+    if(locked){ cur=allowed[0]; }
+    else if(entryAllowed){ cur=entry; }
+    // 缓存里是本次允许的版本就尊重；否则回到该域名列表的第一个（默认版本）
+    else {
+      cur=localStorage.getItem(KEY);
+      if(!cur || !VERSIONS.hasOwnProperty(cur) || allowed.indexOf(cur)<0) cur=allowed[0];
+    }
+    var file=VERSIONS[cur];
+    function fail(msg){
+      var boot=document.getElementById('app');
+      if(boot) boot.innerHTML='<div style="color:#9aa3b0;font:14px/1.5 system-ui,&quot;Microsoft YaHei&quot;,sans-serif;text-align:center;padding-top:20vh">'+msg
+        +'<div style="margin-top:18px"><button type="button" onclick="location.reload()" style="cursor:pointer;background:#1b2030;color:#c7cfdb;border:1px solid #2c3446;border-radius:6px;padding:8px 22px;font:14px system-ui,&quot;Microsoft YaHei&quot;,sans-serif">重试</button></div></div>';
+    }
+    function fetchPage(left){
+      return fetch(file+'?v='+BUILD_STAMP,{cache:'no-store'})
+        .then(function(r){ if(!r.ok) throw new Error(); return r.text(); })
+        .catch(function(e){
+          if(left<=0) throw e;
+          return new Promise(function(res){ setTimeout(res,800); }).then(function(){ return fetchPage(left-1); });
+        });
+    }
+    fetchPage(2)
+      .then(function(html){
+       if(!/type\s*=\s*["']module["']/i.test(html)){
+          if(hideSwitch){ // 单版本域名 / 纯版本入口（#/v2 …）：剥掉旧站自带的切换按钮脚本
+            html=html.replace(/<script[^>]*version-switch[^>]*><\/script>\s*/gi,'');
+          }
+          document.open(); document.write(html); document.close(); return;
+        }
+        var doc=new DOMParser().parseFromString(html,'text/html');
+
+        var vm=doc.querySelector('meta[name="version"]');
+        var hm=document.querySelector('meta[name="version"]');
+        var ver=vm ? (vm.getAttribute('content')||'').trim() : cur;
+        if(!ver) ver=cur;
+        if(hm) hm.setAttribute('content', ver);
+        else { var m=document.createElement('meta'); m.name='version'; m.content=ver; document.head.appendChild(m); }
+
+        // 样式/图标：createElement 注入 head
+        Array.prototype.forEach.call(doc.querySelectorAll('link[rel="stylesheet"],link[rel="icon"]'), function(l){
+          var href=(l.getAttribute('href')||'').trim(); if(!href) return;
+          var el=document.createElement('link');
+          el.rel=l.getAttribute('rel')||'stylesheet';
+           var type=l.getAttribute('type'); if(type) el.type=type;
+          var media=l.getAttribute('media'); if(media) el.media=media;
+          el.href=new URL(href, location.href).href;
+          document.head.appendChild(el);
+        });
+
+
+        var appEl=document.getElementById('app');
+        if(!doc.getElementById('app') && appEl && doc.body){
+          var chunk=document.createElement('div'); chunk.innerHTML=doc.body.innerHTML;
+          Array.prototype.forEach.call(chunk.querySelectorAll('script'), function(s){ s.parentNode.removeChild(s); });
+          while(appEl.firstChild) appEl.removeChild(appEl.firstChild);
+          while(chunk.firstChild) appEl.appendChild(chunk.firstChild);
+        }
+
+        Array.prototype.forEach.call(doc.querySelectorAll('script'), function(s){
+          var el=document.createElement('script');
+          if(s.type) el.type=s.type;
+          var src=(s.getAttribute('src')||'').trim();
+          if(hideSwitch && /version-switch/i.test(src)) return;
+          if(src) el.src=new URL(src, location.href).href;
+          else el.textContent=s.textContent;
+          (document.body||document.head).appendChild(el);
+        });
+      })
+      .catch(function(){ fail('加载 '+file+' 失败，请检查文件或稍后重试'); });
+  })();
+  </script>
+  <footer style="position:fixed;left:50%;right:50%;bottom:0;text-align:center;font:10px/1.5 system-ui,'Microsoft YaHei',sans-serif;white-space:nowrap;z-index:9999;pointer-events:none;">
+    <a href="https://beian.miit.gov.cn" target="_blank" rel="noopener noreferrer" style="color:#9aa3b0;text-decoration:none;pointer-events:auto;">粤ICP备2022048707号</a>
+  </footer>
+</body>
+</html>

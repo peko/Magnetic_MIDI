@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/assets/image/logo/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="version" content="v2" />
+    <title>Online Keyboard Driver &amp; Config Tool | Key Remapping · RGB Lighting · Macros</title>
+    <meta name="description" content="Web-based keyboard driver: no installation required. Connect your device to customize key remapping, RGB lighting effects, macro commands and magnetic switch actuation points. Supports multiple profiles, factory reset and config import/export for a wide range of Hall effect and mechanical keyboards." />
+    <style>
+      html, body { margin: 0; min-height: 100vh; background: #0e1016; }
+      #app { min-height: 100vh; }
+      .boot-loading {
+        position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+        background: #0e1016;
+      }
+      .boot-spinner {
+        width: 34px; height: 34px; border-radius: 50%;
+        border: 3px solid rgba(255, 255, 255, 0.12); border-top-color: #5589ff;
+        animation: boot-spin 1s linear infinite;
+      }
+      @keyframes boot-spin { to { transform: rotate(360deg); } }
+    </style>
+    <script type="module" crossorigin src="/app.js?v=1794550316828"></script>
+    <link rel="stylesheet" crossorigin href="/style.css?v=1794550316828">
+  </head>
+  <body>
+    <div id="app">
+      <div class="boot-loading" aria-live="polite"><div class="boot-spinner"></div></div>
+    </div>
+    <!-- 百度统计 -->
+    <script>
+      var _hmt = _hmt || [];
+      (function () {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?1ac7378aa9320398afb524892e8e1dc6";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(hm, s);
+      })();
+    </script>
+    <footer style="position:fixed;left:0;right:0;bottom:0;text-align:center;font:10px/1.5 system-ui,'Microsoft YaHei',sans-serif;z-index:9999;">
+      <a href="https://beian.miit.gov.cn" target="_blank" rel="noopener noreferrer" style="color:#9aa3b0;text-decoration:none;">粤ICP备2022048707号</a>
+    </footer>
+  <script type="text/javascript" src="js/version-switch.js?v=1794550316828"></script></body>
+</html>
