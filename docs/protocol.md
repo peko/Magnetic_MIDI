@@ -26,6 +26,7 @@ Mask format, used by several commands: 22 bytes, where bit `row` of byte `col` s
 | `0x01` | `[01]` | Device status. `data[0..17]` holds capability bits (see `BD.handle` case 1). The web driver also sends this every few seconds as a heartbeat. | ✅ |
 | `0x0D` | `[0D]` | Several pages of ASCII CSV. Page 0 = `W669,34,KB,ML,QK75EHEARGB,V3.22.00` (product = field 4, fw = field 5). Page 1 = build date. | ✅ |
 | `0x15` | `[15]` | Serial number, 32 bytes (all zeros on this unit). | ✅ |
+| `0x18` flag `0x80`/`0x82` | `[18 80]` default layer, `[18 82]` Fn layer | Keymap read: 10 pages `[18 80 page_hi page_lo len, 4 B × 14 keys]` (last page len 0x18), key index = `14*page + i` (= `row*22+col`). Entry = `code1 hid code3 code4`; **`00000000` = not remapped**. See below. | ✅ read |
 | `0x21` sub `0x04` | `[21 00 00 00 18 04]` | Trigger config. `max = d[9]<<8 \| d[6]` = 340, unit raw `d[7]`. With high precision, travel units are 0.01 mm (0–3.40 mm). | ✅ |
 | `0x21` sub `0x02` | `[21 00 00 00 18 02 mask[22]]` | **Opens the live travel stream** (trigger test). The keyboard acknowledges with `21 00 00 00 01 00`, then sends `21 .. .. .. 05 01 row col travel_lo travel_hi` each time a key's travel changes. | ✅ |
 | `0x21` sub `0x03` | `[21 00 00 00 18 03]` | Closes the trigger test. | ✅ |
@@ -35,7 +36,7 @@ Mask format, used by several commands: 22 bytes, where bit `row` of byte `col` s
 | `0x14` | — | `[14 00 00 00 01 01]` reboots the keyboard. `[14 02]` is a **factory reset.** `[14 02 ..]` is also the sleep timer. | blocked |
 
 Other command codes seen in the bundle but not yet exercised: `0x02/0x07/0x08/0x09/0x0A` (lighting),
-`0x0E` (Fn-editable keys), `0x18` (keymap), `0x19` (macros), `0x20` (app function trigger),
+`0x0E` (Fn-editable keys), `0x18` flag 0/1 (keymap write), `0x19` (macros), `0x20` (app function trigger),
 `0x22` (advanced keys: DKS/MT/TGL/SOCD), `0x24` (PRCS power), `0x25` (switch type list),
 `0x26` (dead band), `0x21` subs `0x07/0x08/0x0F` (calibration), `0x09` (poll rate), `0x11/0x12` (profile).
 
@@ -47,3 +48,24 @@ Other command codes seen in the bundle but not yet exercised: `0x02/0x07/0x08/0x
 - A fast stroke can jump from 0 straight to about 1.5 mm in one sample.
 - The stream kept running for 60 s without a heartbeat, but `tools/c80/stream.py` sends `0x01` every 2 s anyway.
 - While the stream is open, normal HID key reports keep arriving on interfaces 0 and 1.
+
+## Keymap entries (`0x18`)
+Each key takes 4 bytes `code1, hid, code3, code4`. `code1` is the action type. The names come from the driver's
+`config/keys.json` (snapshot in `vendor/webdriver/config/keys.json`; all fields there are hex).
+
+| code1 | meaning | fields |
+|---|---|---|
+| `00` | keyboard usage | `hid` = HID usage; `00 FA` = Fn |
+| `02`–`06` | lighting mode/brightness/speed/direction/colour | `hid` = sub-action |
+| `07` | consumer/media | `hid` = driver-internal media id (e.g. `10` Vol+, `13` Play/Pause) |
+| `10` | macro | `code3` = macro slot |
+| `11` | lock keyboard / Win / lights | `hid` |
+| `12` | mouse | **stored as `12 code3 hid code4`** (button / wheel) |
+| `13` | modifier combo | `hid` = modifier usage (E0..E7), `code3` = key usage |
+| `18`/`19` | gamepad (classic / XInput) | `hid` = axis/button id |
+
+Write (not yet implemented or tested): `[18 layer(0=default,1=Fn) page_hi page_lo len data≤56]` for each page in turn, with an ack after
+each page, then poll `0x01` until bit 1 of `data[22]` (the storing flag) clears. The driver always sends the full
+132×4-byte buffer, with zeros for every key that is not remapped.
+On this unit (2026-11-14) both layers are all zeros, so nothing is remapped. Firmware-built-in Fn functions (media on F-keys, etc.)
+are not exposed by this command.
