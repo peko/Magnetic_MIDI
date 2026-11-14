@@ -75,3 +75,17 @@ The remap persisted across a USB replug (re-enumerated 19:50, dump still showed 
 though the storing flag was never seen.
 On this unit (2026-11-14) both layers are all zeros, so nothing is remapped. Firmware-built-in Fn functions (media on F-keys, etc.)
 are not exposed by this command.
+
+## Lighting (`0x07`, `0x09`, `0x0A`), tested 2026-11-14
+| request | meaning |
+|---|---|
+| `[0A 00]` | Mode list: `data[0..n-5]` = mode ids (C80: `2 1 3 9 4 0 14 15 6 7 11 12 16 8`), the last two bytes = max speed and max brightness (4/4). The driver adds mode 10 (custom) if status `data[12]` bit 1 is set, and mode 100 (music) if bit 5 is set. |
+| `[07 01]` | Config: `mode bri speed fgR fgG fgB bgR bgG bgB dir fullColor power timer`. **power 0 = on, 1 = off.** |
+| `[07 00 00 00 0E <13 bytes>]` | Set config (no reply). |
+| `[09 20]` | Current custom layer, in `reply[1]` (0/1). |
+| `[09 80]` / `[09 81]` | Read the custom colours of layer 0/1: 8 pages of 18 keys × RGB, key = `18*page + i` (same index as the keymap). |
+| `[09 L page_hi page_lo len rgb≤54]` | Write custom colours of layer L, pages 0..7. The keyboard acks each page with `[09 L ...]`. |
+
+Factory custom layers on this unit: layer 0 = W A S D PgDn Down Right + slot 126 in red, layer 1 = all letters in blue.
+`c80.light` / `c80.midi --light` read the config and the active layer, save `captures/light_backup_*.json`, write the note colours, switch to mode 10,
+and restore everything on exit. The custom colours are assumed to live in flash, so they are written once per session, not per note.
