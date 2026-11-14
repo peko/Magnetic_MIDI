@@ -11,9 +11,9 @@ NAME = "fun68"
 TITLE = "MonsGeek FUN68"
 PORT_NAME = "MonsGeek FUN68"
 EVDEV_GLOB = "usb-*Monsgeek*event*"
-UNIT_MM = None  # raw depth unit not measured yet
+UNIT_MM = None  # raw unit unconfirmed; probably 0.005 mm (driver DB travel step), i.e. 720 = 3.6 mm
 DEFAULTS = {
-    "full_travel": 340,  # provisional; grows to the deepest value seen
+    "full_travel": 720,  # bottom-out, measured 2026-11-14 (hard ceiling: 14 of 27 keys hit exactly 720)
     "vel_lo": 0.12,
     "vel_hi": 0.60,
     "release": 0.35,

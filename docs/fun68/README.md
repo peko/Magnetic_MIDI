@@ -9,5 +9,5 @@
   depth monitoring), [ry5088-flasher](https://github.com/dot-agi/ry5088-flasher) (RY5088 platform, bootloader and
   dangerous opcodes).
 
-Open items: the raw depth unit / bottom-out value and the report cadence (measure with `tools/viz.py`), lighting
-for `magmidi.midi --light`, keymap write.
+Calibrated: bottom-out 720 raw, reports every ~1.4 ms while moving (see protocol.md). Open items: confirming the
+raw unit in mm, lighting for `magmidi.midi --light`, keymap write.

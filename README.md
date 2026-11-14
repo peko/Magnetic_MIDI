@@ -6,7 +6,7 @@ keyboard into a velocity-sensitive MIDI controller.
 | device | id | protocol | travel stream | docs |
 |---|---|---|---|---|
 | CIDOO C80 | `2e3c:c368`, fw `QK75EHEARGB V3.22.00` | illumipc white-label (usage page 0xFF1B) | cmd `0x21` trigger test, 0.01 mm, ~1 ms | [docs/c80](docs/c80/) |
-| MonsGeek FUN68 HE | `3151:5030`, dev_id 2811, fw 0x0504 | RongYuan RY5088 (usage page 0xFFFF, feature reports) | cmd `0x1B` depth report, raw units | [docs/fun68](docs/fun68/) |
+| MonsGeek FUN68 HE | `3151:5030`, dev_id 2811, fw 0x0504 | RongYuan RY5088 (usage page 0xFFFF, feature reports) | cmd `0x1B` depth report, 0–720 raw, ~1.4 ms | [docs/fun68](docs/fun68/) |
 
 ## Layout
 - `tools/magmidi/` — shared core: `midi.py` (MIDI bridge), `viz.py` (live TUI), `velocity.py` (strike model),
@@ -39,6 +39,7 @@ PYTHONPATH=tools python3 -m magmidi.devices.c80.light show -v      # C80 lightin
 PYTHONPATH=tools python3 -m magmidi.devices.fun68.keymap dump [--changed] [--raw] [--profile N]  # read-only
 .venv/bin/python tools/scripts/c80/probe_readonly.py              # C80 firmware id, status, trigger config
 .venv/bin/python tools/scripts/c80/stream_probe.py trigger 20     # C80 raw travel log -> captures/c80/
+python3 tools/scripts/depth_probe.py [--device fun68] 40          # record travel, per-key maxima + cadence (calibration)
 ```
 `magmidi.midi` grabs the keyboard's evdev nodes so it doesn't type while you play (`--no-grab` disables this);
 Esc on the keyboard quits. Connect the port with `aconnect` or pick it in your DAW. `--config file.yaml` overrides

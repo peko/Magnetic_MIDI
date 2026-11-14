@@ -32,8 +32,17 @@ GET = SET | 0x80.
 ## Depth stream
 After `0x1B 01`, interface 1 sends `05 1B lo hi idx` per change: depth = `hi<<8 | lo` (raw), idx = matrix index.
 No reports while idle. Works over USB on this firmware ✅ (monsgeek-akko-linux reports that v407 of model 2949
-sends depth only over Bluetooth; this unit is not affected). Raw unit / bottom-out value: TODO, measure with
-`viz.py` ("max raw" in the title). Reporting cadence: TODO (`min gap` in the title).
+sends depth only over Bluetooth; this unit is not affected).
+
+Measured 2026-11-14 (`tools/scripts/depth_probe.py`, capture `captures/fun68/depth_20261114_225120.txt`,
+7748 events, 27 keys, 40 s):
+- **Bottom-out = 720**, a hard ceiling: 14 keys reached exactly 720, deep strokes end at 700–720. Resolution is 1 raw
+  unit (697 distinct values). The unit is not confirmed; the driver DB gives a travel step of 0.005 mm, which would
+  make 720 = 3.6 mm. Light touches stop around 20–30 (first reported values).
+- Reports during movement: gap min 0.01 ms, p25 0.9, **median 1.4**, p75 2.1 ms (C80: ~1 ms).
+- With `full_travel` 720 and the default thresholds (timing 12 %→60 %, i.e. 86→432) 116 strikes took 0–86 ms
+  (median 19 ms; 4 jumped past both thresholds in one report) and mapped to velocities 28–127 (median 79)
+  with fast_ms 4 / slow_ms 200.
 
 ## Keymap (profile 0, 2026-11-14)
 - Layers: 0 base (68 entries incl. Fn at slot 65 = `0A 01 00 00`), 1 alternate (Fn+Alt), 2/3 DKS outputs only;
