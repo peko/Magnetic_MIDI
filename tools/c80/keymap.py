@@ -37,7 +37,7 @@ LAST_PAGE = 9
 
 # code1 values (hex in keys.json) and their meaning
 ACTION_TYPES = {
-    0x00: "key", 0x02: "light-mode", 0x03: "brightness", 0x04: "light-speed", 0x05: "light-dir",
+    0x00: "key", 0x01: "fn", 0x02: "light-mode", 0x03: "brightness", 0x04: "light-speed", 0x05: "light-dir",
     0x06: "light-color", 0x07: "media", 0x10: "macro", 0x11: "lock", 0x12: "mouse", 0x13: "combo",
     0x18: "gamepad", 0x19: "xinput",
 }
@@ -82,7 +82,7 @@ def describe(entry, fixed) -> str:
     c1, hid, c3, c4 = entry
     if entry == (0, 0, 0, 0):
         return "(stock)"
-    if c1 == 0 and hid == 0xFA:
+    if (c1, hid, c3, c4) == (1, 0, 0, 0) or (c1 == 0 and hid == 0xFA):
         return "Fn"
     if c1 == 0x12:  # mouse entries are stored as code1, code3, hid, code4
         hid, c3 = c3, hid
@@ -148,8 +148,8 @@ def encode(action: str) -> tuple:
     """Action name (driver `code`, e.g. KeyA, F13, AudioVolumeUp, MouseLeft), 'stock', 'Fn' or 8 hex digits."""
     if action.lower() == "stock":
         return (0, 0, 0, 0)
-    if action == "Fn":
-        return (0, 0xFA, 0, 0)
+    if action.lower() == "fn":
+        return (1, 0, 0, 0)  # what the driver writes for KeyFn; verified: makes the key a 2nd Fn
     if len(action) == 8 and all(c in "0123456789abcdefABCDEF" for c in action):
         return tuple(bytes.fromhex(action))
     for group in json.load(open(FIXED))["keysConfig"]:

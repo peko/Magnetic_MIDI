@@ -55,7 +55,8 @@ Each key takes 4 bytes `code1, hid, code3, code4`. `code1` is the action type. T
 
 | code1 | meaning | fields |
 |---|---|---|
-| `00` | keyboard usage | `hid` = HID usage; `00 FA` = Fn |
+| `00` | keyboard usage | `hid` = HID usage (the driver's reader also treats `00 FA` as Fn) |
+| `01` | **Fn (momentary layer key)** | `01 00 00 00`. Not offered by the driver UI, but writing it to R-Alt in the default layer made R-Alt a second Fn (tested 2026-11-14: R-Alt+J gave the Fn-layer action, R-Alt alone sent nothing). |
 | `02`–`06` | lighting mode/brightness/speed/direction/colour | `hid` = sub-action |
 | `07` | consumer/media | `hid` = driver-internal media id (e.g. `10` Vol+, `13` Play/Pause) |
 | `10` | macro | `code3` = macro slot |
