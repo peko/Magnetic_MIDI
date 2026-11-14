@@ -26,6 +26,10 @@ SAFE_CMDS = {
     0x23,  # ADC stream: data[0] (byte 5) = 1 open, 0 close
 }
 DANGEROUS_CMDS = {0x0B: "enter bootloader", 0x14: "reset / factory reset"}
+# Commands that also write (to flash), allowed only with the listed flag bytes (the read variants).
+READ_ONLY_FLAGS = {
+    0x18: {0x80, 0x82},  # keymap: 0x80 read default layer, 0x82 read Fn layer (0/1 would write)
+}
 
 
 def find_hidraw() -> str:
@@ -72,7 +76,9 @@ class C80:
         cmd = pkt[0]
         if cmd in DANGEROUS_CMDS:
             raise PermissionError(f"refusing dangerous command 0x{cmd:02X} ({DANGEROUS_CMDS[cmd]})")
-        if cmd not in SAFE_CMDS and not self.allow_unsafe:
+        if cmd in READ_ONLY_FLAGS and pkt[1] in READ_ONLY_FLAGS[cmd]:
+            pass
+        elif cmd not in SAFE_CMDS and not self.allow_unsafe:
             raise PermissionError(f"command 0x{cmd:02X} not in SAFE_CMDS; pass allow_unsafe=True")
         os.write(self.fd, bytes([REPORT_ID]) + pkt)
 
