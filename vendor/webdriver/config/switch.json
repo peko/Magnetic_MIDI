@@ -1,0 +1,31 @@
+{
+  "switches": [
+    { "index": 1, "title": "HM1", "name": "switch1", "travel": 3.4, "color": [0, 128, 255] },
+    { "index": 2, "title": "HH1", "name": "switch2", "travel": 3.4, "color": [128, 128, 50] },
+    { "index": 3, "title": "CY1", "name": "switch3", "travel": 3.4, "color": [128, 128, 128] },
+    { "index": 4, "title": "TW1", "name": "switch4", "travel": 3.4, "color": [57, 98, 112] },
+    { "index": 5, "title": "TC1", "name": "switch5", "travel": 3.4, "color": [200, 0, 200] },
+    { "index": 6, "title": "SL1", "name": "switch6", "travel": 3.4, "color": [230, 99, 11] },
+    { "index": 7, "title": "FZ1", "name": "switch7", "travel": 3.9, "color": [220, 144, 144] },
+    { "index": 8, "title": "GJP", "name": "switch8", "travel": 3.4, "color": [100, 160, 140] },
+    { "index": 9, "title": "HMZ", "name": "switch9", "travel": 3.4, "color": [144, 197, 131] },
+    { "index": 10, "title": "GW1", "name": "switch10", "travel": 3.9, "color": [164, 168, 154] },
+    { "index": 11, "title": "VA1", "name": "switch11", "travel": 3.4, "color": [139, 157, 141] },
+    { "index": 12, "title": "OTK", "name": "switch12", "travel": 3.4, "color": [57, 157, 181] },
+    { "index": 13, "title": "CN1", "name": "switch13", "travel": 3.4, "color": [203, 145, 137] },
+    { "index": 14, "title": "RY1", "name": "switch14", "travel": 3.4, "color": [194, 143, 100] },
+    { "index": 15, "title": "WCG", "name": "switch15", "travel": 3.4, "color": [178, 178, 178] },
+    { "index": 16, "title": "JY1", "name": "switch16", "travel": 3.6, "color": [113, 113, 113] },
+    { "index": 17, "title": "CS1", "name": "switch17", "travel": 3.4, "color": [87, 152, 146] },
+    { "index": 18, "title": "VA2", "name": "switch18", "travel": 3.4, "color": [117, 126, 192] },
+    { "index": 19, "title": "CD", "name": "switch19", "travel": 3.4, "color": [186, 197, 203] },
+    { "index": 20, "title": "BY", "name": "switch20", "travel": 3.4, "color": [183, 188, 188] },
+    { "index": 21, "title": "YH1", "name": "switch21", "travel": 3.4, "color": [255, 204, 0] },
+    { "index": 22, "title": "EM1", "name": "switch22", "travel": 3.5, "color": [210, 139, 66] },
+    { "index": 23, "title": "GGS", "name": "switch23", "travel": 3.5, "color": [110, 99, 171] },
+    { "index": 24, "title": "ML2", "name": "switch24", "travel": 3.9, "color": [130, 180, 40] },
+    { "index": 25, "title": "PJ", "name": "switch25", "travel": 3.4, "color": [70, 20, 150] },
+    { "index": 26, "title": "HMB", "name": "switch26", "travel": 3.3, "color": [255, 255, 255] },
+    { "index": 27, "title": "CYG", "name": "switch27", "travel": 3.4, "color": [197, 73, 201] }
+  ]
+}
