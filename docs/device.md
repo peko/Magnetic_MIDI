@@ -177,3 +177,35 @@ MODALIAS=hid:b0003g0001v00002E3Cp0000C368
 00000000: 061b ff09 91a1 0185 0119 002a ff00 1500  ...........*....
 00000010: 26ff 0075 0895 3f81 0219 0029 ff91 02c0  &..u..?....)....
 ```
+
+## Built-in Fn functions (from the printed C80 manual)
+Scans of the manual: [page 1](manual/c80_manual_p1.png) (layout, knob, lighting, system), [page 2](manual/c80_manual_p2.png) (multimedia, Mac, misc).
+These live in firmware and are **not** visible via `0x18` (the Fn layer reads back as zeros). Any of them can be overridden
+by writing a Fn-layer entry (`c80.keymap set fn <key> <action>`). `0x0E` reports only Fn itself as locked.
+
+| Combination | Function |
+|---|---|
+| Knob press / turn | Mute / volume down (counter-clockwise) / volume up (clockwise) |
+| Fn+↑ / Fn+↓ | RGB brightness up / down |
+| Fn+`=+` / Fn+`-_` | RGB effect speed up / down |
+| Fn+→ | Next backlight colour |
+| Fn+← | Change backlight direction |
+| Fn+`\|` | Next backlight effect |
+| Fn+Backspace | RGB backlight on/off |
+| **Fn+Esc held 3 s** | **Factory reset** (do not use in tests) |
+| Fn+A / Fn+S | Windows / Mac mode |
+| Fn+Delete | Insert |
+| Fn+I / Fn+O / Fn+P | PrtSc / ScrLk / Pause |
+| Fn+Win | Lock / unlock the Win key |
+| Fn+R-Shift | SOCD on/off |
+
+Multimedia in **Win mode** (Fn+F-key):
+
+| F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8 | F9 | F10 | F11 | F12 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| My Computer | Explorer | Calculator | Email | Media player | Stop | Prev | Play/Pause | Next | Mute | Vol− | Vol+ |
+
+In **Mac mode** the manual lists these on F-keys without Fn: F1/F2 screen brightness −/+, F3 Mission Control, F4 Launchpad,
+F5/F6 nothing, F7–F12 the same as in Win mode (Prev, Play/Pause, Next, Mute, Vol−, Vol+).
+
+Keys not listed in the manual (e.g. J, used for the remap test) have no built-in Fn function.

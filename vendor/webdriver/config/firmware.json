@@ -1,0 +1,208 @@
+{
+  "device": [
+    {
+      "product": "RK858HERGB",
+      "version": "",
+      "file": ""
+    },
+    {
+      "product": "HK6801MGHERGB",
+      "version": "2.03.08",
+      "file": "QZ025CKB_W669KBHY_HK6801HERGB_V20308.rar"
+    },
+    {
+      "product": "SG8994HE",
+      "version": "1.13.02",
+      "file": "QZ034CKB_M484KBSG_SG8994HE_V1_13_02_CS_6DC5.rar"
+    },
+    {
+      "product": "RK801HERGB",
+      "version": "2.03.02",
+      "file": "QZ021CKB_W669KBRK_RK801HERGB_V20302.zip"
+    },
+    {
+      "product": "SI2828HEARGB",
+      "version": "3.14.31",
+      "file": "GD278CKB_W669KBSI_SI2828HEARGB_V31431.zip"
+    },
+    {
+      "product": "SI2828KZHEARGB",
+      "version": "3.17.05",
+      "file": "GD284CKB_W669KBSI_SI2828KZHEARGB_V31705_0x03AE.zip"
+    },
+    {
+      "product": "SI2825HEARGB",
+      "version": "3.13.31",
+      "file": "YBY264CKB_W669KBSI_SI2825HEARGB_V31331.zip"
+    },
+    {
+      "product": "7272USXYXRECYHEPRORGB",
+      "version": "2.03.05",
+      "file": "YBY269CKB_M484KBFR_7272USXYXRECYHEPRORGB_V2.03.05_CS_1ff5.rar"
+    },
+    {
+      "product": "7272USXYXREHJHEPRORGB",
+      "version": "2.03.05",
+      "file": "YBY270CKB_M484KBFR_7272USXYXREHJHEPRORGB_V2.03.05_CS_267C.rar"
+    },
+    {
+      "product": "7272USZAXNHJHERGB",
+      "version": "1.13.01",
+      "file": "YBY240CKB_M484KBFR_7272USZAXNHJHERGB_V1.13.01_CS_4036.rar"
+    },
+    {
+      "product": "7272USHEXYXHJ",
+      "version": "2.05.02",
+      "file": "QZ031CKB_W669KBFR_7272USHEXYXHJV20502_CS_077C.rar"
+    },
+    {
+      "product": "T68SEUSXYXNHJHERGB",
+      "version": "1.13.13",
+      "file": "YBY181CKB_M484KBRC_T68SEUSXYXNHJHERGB_V1_13_13.rar"
+    },
+    {
+      "product": "SI2825KZHEARGB",
+      "version": "3.17.08",
+      "file": "GD285CKB_W669KBSI_SI2825KZHEARGB_V31708_0x0060.zip"
+    },
+    {
+      "product": "SI2825KR-AHEARGB",
+      "version": "3.18.01",
+      "file": "GD357CKB_W669KBSI_SI2825KR-AHEARGB_V31801_0x5650.zip"
+    },
+    {
+      "product": "SI2825KRT12HEARGB",
+      "version": "3.19.02",
+      "file": "GD358CKB_W669KBSI_SI2825KRT12HEARGB_V31902_0x475D.zip"
+    },
+    {
+      "product": "7257MCUSproHEXYXHJARGB",
+      "version": "3.13.05",
+      "file": "YBY302CKB_W669KBFR_7257MCUSproHEXYXHJARGB_V3_13_05.rar"
+    },
+    {
+      "product": "AP61HEARGB",
+      "version": "3.22.19",
+      "file": "W60-V32219.zip"
+    },
+    {
+      "product": "W75HEARGB",
+      "version": "3.22.07",
+      "file": "W75-V32207.zip"
+    },
+    {
+      "product": "AK1668JHXUSLYHEARGB",
+      "version": "3.20.06",
+      "file": "GD342CKB_W669KBSP_AK1668JHXUSLYHEARGB_V32006_CS_0x00CE3525.zip"
+    },
+    {
+      "product": "AK1681GXDWXYXUSHEARGB",
+      "version": "3.20.08",
+      "file": "QZ118CKB_W669KBSP_AK1681GXDWXYXHMJYUSHEARGB_V3.20.00_CS_00D0.zip"
+    },
+    {
+      "product": "AK1668JHXUSHEARGB",
+      "version": "3.20.10",
+      "file": "QZ074CKB_W669KBSP_AK1668JHXUSHEARGB_V3.20.10_CS_0x00CDEAC2.zip"
+    },
+    {
+      "product": "DK68SEUSHEARGB",
+      "version": "3.16.02",
+      "file": "YBY363CKB_W669KBHC_DK68SEUSHEARGB_V3.16.02_CS_0XCCD48E.zip"
+    },
+    {
+      "product": "T68SEUSHEARGB",
+      "version": "3.16.06",
+      "file": "YBY353CKB_W669KBHC_T68SEUSHEARGB_V3.16.06_CS_CCD4B5.zip"
+    },
+
+
+    
+     {
+      "product": "KZZIG68HERGB",
+      "version": "1.13.22",
+      "file": "YBY163CKB_M484KBRK_KZZIG68HERGB V1_13_22.zip"
+    },
+    {
+      "product": "RK801HEARGB",
+      "version": "3.15.20",
+      "file": "QZ061CKB_W669KBRK_RK801HEARGB_V31520.zip"
+    },
+    {
+      "product": "RK801BHEARGB",
+      "version": "3.17.09",
+      "file": "GD304CKB_W669KBRK_RK801BHEARGB_V31709.zip"
+    },
+    {
+      "product": "RK863HEARGB",
+      "version": "3.15.14",
+      "file": "GD307CKB_W669KBRK_RK863HEARGB_V31514.zip"
+    },
+    {
+      "product": "RK863BHEARGB",
+      "version": "3.17.11",
+      "file": "GD308CKB_W669KBRK_RK863BHEARGB_V31711.zip"
+    },
+	{
+      "product": "RK613HEARGB",
+      "version": "3.17.02",
+      "file": "GD328CKB_W669KBRK_RK613HEARGB_V31702.zip"
+    },
+    {
+      "product": "RK613BHEARGB",
+      "version": "3.15.10",
+      "file": "GD318CKB_W669KBRK_RK613BHEARGB_V31510.zip"
+    },
+    {
+      "product": "RK887HEARGB",
+      "version": "3.17.02",
+      "file": "GD329CKB_W669KBRK_RK887HEARGB_V31702.zip"
+    },
+    {
+      "product": "RK887BHEARGB",
+      "version": "3.15.09",
+      "file": "GD320CKB_W669KBRK_RK887BHEARGB_V31509.zip"
+    },
+    {
+      "product": "RK872HEARGB",
+      "version": "3.22.05",
+      "file": "QZ131CKB_W669KBRK_RK872HEARGB V3.22.05_CS_01AC618E.zip"
+    },
+    {
+      "product": "RK872BHEARGB",
+      "version": "3.22.04",
+      "file": "QZ133CKB_W669KBRK_RK872BHEARGB V3.22.04_CS_01AC106C.zip"
+    },
+    {
+      "product": "RK7013HEARGB",
+      "version": "3.22.08",
+      "file": "QZ127CKB_W669KBRK_RK7013HEARGB V3.22.08_CS_01AE3072.zip"
+    },
+
+    {
+      "product": "RK7012HEARGB",
+      "version": "3.22.05",
+      "file": "QZ120CKB_W669KBRK_RK7012HEARGB_V3.22.05_CS_001EF80E0.zip"
+    },
+    {
+      "product": "RK7012BHEARGB",
+      "version": "3.22.03",
+      "file": "QZ122CKB_W669KBRK_RK7012BHEARGB_V3.22.03_CS_00D0C2209.zip"
+    },
+    {
+      "product": "RK7013BHEARGB",
+      "version": "3.22.04",
+      "file": "QZ128CKB_W669KBRK_RK7013BHEARGB V3.22.04_CS_01ADA21B.zip"
+    },
+    {
+      "product": "RK887DLPHEARGB",
+      "version": "3.22.01",
+      "file": "QZ137CKB_W669KBRK_RK887DLPHEARGB V3.22.01_CS_01B03524.zip"
+    },
+    {
+      "product": "RK887BDLPHEARGB",
+      "version": "3.22.01",
+      "file": "QZ139CKB_W669KBRK_RK887BDLPHEARGB V3.22.01_CS_01AEA86F.zip"
+    }
+  ]
+}
