@@ -32,7 +32,7 @@ a directory over that path inside an unprivileged user+mount namespace:
 ```sh
 mkdir -p /tmp/plug/WootingAnalogPlugins/cidoo && cp target/release/*.so /tmp/plug/WootingAnalogPlugins/cidoo/
 unshare -rm sh -c 'mount --bind /tmp/plug /usr/local/share && \
-  RUST_LOG=info CIDOO_PLUGIN_LOG=info python3 ../tools/scripts/c80/sdk_harness.py /path/to/libwooting_analog_sdk.so 30'
+  RUST_LOG=info CIDOO_PLUGIN_LOG=info python3 ../../tools/scripts/c80/sdk_harness.py /path/to/libwooting_analog_sdk.so 30'
 ```
 Tested on 2026-11-14 with SDK v0.9.1: the plugin loaded as a C plugin with ABI 1, the C80 was listed
 (`CIDOO / CIDOO C80`, pid c368), and over 30 s about 28k `read_full_buffer` polls returned smooth 0–1 values for 26 different keys.
