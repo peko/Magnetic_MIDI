@@ -43,7 +43,10 @@ PYTHONPATH=tools python3 -m magmidi.devices.fun68.light show [-v]  # FUN68 LED p
 python3 tools/scripts/depth_probe.py [--device fun68] 40          # record travel, per-key maxima + cadence (calibration)
 ```
 `magmidi.midi` grabs the keyboard's evdev nodes so it doesn't type while you play (`--no-grab` disables this);
-Esc on the keyboard quits. Connect the port with `aconnect` or pick it in your DAW. `--config file.yaml` overrides
+Esc on the keyboard quits. Space is the sustain pedal, inverted by default (sustain on while Space is up, pressing
+it damps; `sustain_inverted: false` for a normal pedal). Arrows transpose by a semitone (Up/Right +, Down/Left −),
+Shift+arrows by an octave; `--light` shows Space green and arrows/Shift amber (colours stay in the base key —
+recolouring would cost a flash write per change). Connect the port with `aconnect` or pick it in your DAW. `--config file.yaml` overrides
 `velocity.DEFAULTS`, `midi.COMMON` and the device's `spec.DEFAULTS` (note map by layout key name; thresholds
 `vel_lo` / `vel_hi` / `release` as fractions of `full_travel`).
 
