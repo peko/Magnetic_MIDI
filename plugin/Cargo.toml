@@ -1,0 +1,25 @@
+[package]
+name = "wooting-analog-plugin-cidoo"
+version = "0.1.0"
+edition = "2021"
+description = "Wooting Analog SDK plugin for CIDOO C80 (and same-platform 0xFF1B Hall-effect boards)"
+license = "MIT"
+publish = false
+
+[lib]
+name = "wooting_analog_plugin_cidoo"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+# Wooting Analog SDK main branch (0.10+) uses C plugin ABI 2 (adds DeviceInfo.support_level).
+# Released SDK 0.9.x uses ABI 1 (default).
+abi2 = []
+
+[dependencies]
+hidapi = "2"
+log = "0.4"
+env_logger = { version = "0.11", default-features = false }
+
+[profile.release]
+lto = true

@@ -8,6 +8,7 @@ They read per-key analog travel live and turn the keyboard into a velocity-sensi
 - `docs/sources.md`: official software and related projects
 - `vendor/webdriver/`: snapshot of the official web driver (treat it as data; do not run it)
 - `captures/`: logged streams
+- `plugin/`: Wooting Analog SDK plugin (Rust, C ABI); see `plugin/README.md`
 
 ## Setup
 ```sh
@@ -22,6 +23,7 @@ On this machine `/dev/hidraw*` is mode 0666 and the user is in the `input` group
 .venv/bin/python tools/stream_probe.py trigger 20 # live travel per key -> captures/
 .venv/bin/python tools/stream_probe.py adc 5      # raw Hall ADC frames (~50 Hz)
 PYTHONPATH=tools .venv/bin/python -m c80.midi -v  # virtual MIDI port "CIDOO C80"; Esc quits
+.venv/bin/python tools/map_keys.py 30            # cross-check matrix index vs evdev keys (untested)
 ```
 `c80.midi` grabs the keyboard's evdev nodes so it doesn't type while you play (`--no-grab` disables this).
 Connect the port to a synth with `aconnect`, or pick it in your DAW. Settings (thresholds, velocity curve, note map)
