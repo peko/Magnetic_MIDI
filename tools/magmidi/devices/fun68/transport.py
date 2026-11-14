@@ -2,7 +2,8 @@
 
 Config interface (USB interface 2, usage page 0xFFFF / usage 0x02): 64-byte Feature reports, report ID 0.
     SET_FEATURE: [cmd, a1..a6, chk, payload...]  chk makes sum(bytes[0..7]) == 0xFF (Bit7);
-                 LED commands 0x07/0x08 (and 0x87/0x88) use Bit8: sum(bytes[0..8]) == 0xFF.
+                 LED SET commands 0x07/0x08 use Bit8 instead: sum(bytes[0..8]) == 0xFF. Their GETs 0x87/0x88 use Bit7
+                 (with Bit8 the keyboard rejects the request and GET returns the request buffer).
     GET_FEATURE: reply, byte 0 echoes cmd (GET_MULTI_MAGNETISM 0xE5 replies without an echo).
 Event interface (USB interface 1, usage page 0xFFFF / usage 0x01): input report ID 5, 31 bytes.
     05 1B lo hi idx   key depth (only while SET_MAGNETISM_REPORT 0x1B is on)
@@ -38,7 +39,7 @@ DANGEROUS_CMDS = {
     0x30: "OLED bootloader",
     0x31: "OLED boot start",
 }
-BIT8_CMDS = {0x07, 0x08, 0x87, 0x88}
+BIT8_CMDS = {0x07, 0x08}  # SET_LEDPARAM / SET_SLEDPARAM only; their GETs (0x87/0x88) use Bit7
 
 
 def _ioc(direction: int, nr: int, size: int) -> int:
