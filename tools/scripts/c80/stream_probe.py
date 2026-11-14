@@ -10,13 +10,13 @@ import pathlib
 import sys
 import time
 
-sys.path.insert(0, __file__.rsplit("/", 1)[0])
-from c80 import C80, hexdump, packet  # noqa: E402
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
+from magmidi.devices.c80 import C80, hexdump, packet  # noqa: E402
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
+from magmidi.paths import C80_LAYOUT_JSON, ROOT, captures  # noqa: E402
 mode = sys.argv[1]
 secs = float(sys.argv[2]) if len(sys.argv) > 2 else 10
-layout = json.load(open(ROOT / "vendor/webdriver/config/keys/QK75EHEARGB.json"))["keys"]
+layout = json.load(open(C80_LAYOUT_JSON))["keys"]
 names = {int(k["index"]): k["name"] for k in layout}
 
 if mode == "trigger":
@@ -29,7 +29,7 @@ else:
     open_pkt = packet(0x23, data=[0x01])
     close_pkt = packet(0x23, data=[0x00])
 
-log = open(ROOT / f"captures/{mode}_{time.strftime('%Y%m%d_%H%M%S')}.txt", "w")
+log = open(captures("c80") / f"{mode}_{time.strftime('%Y%m%d_%H%M%S')}.txt", "w")
 stats = collections.Counter()
 travel = collections.defaultdict(list)
 with C80() as kb:

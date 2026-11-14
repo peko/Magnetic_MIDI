@@ -3,8 +3,8 @@
 ## Official
 - C80 driver page: https://cidootech.com/blogs/software/cidoo-c80-driver. It links only to the online driver below; there is no .exe.
 - Online driver (WebHID): https://cidoo.illumipc.com/ (v1 = legacy `js/*.min.js`, v2 = `/app.js` Vue bundle).
-  Snapshot in `vendor/webdriver/`. Device list: `config/device.json`. Layouts: `config/keys/<product>.json`.
-- Firmware catalog of the driver platform: `config/firmware.json` (snapshot in `vendor/webdriver/config/`). It lists 40 products
+  Snapshot in `vendor/c80/webdriver/`. Device list: `config/device.json`. Layouts: `config/keys/<product>.json`.
+- Firmware catalog of the driver platform: `config/firmware.json` (snapshot in `vendor/c80/webdriver/config/`). It lists 40 products
   with version and archive name, and the driver's update page downloads `/firmware/<file>` from its own origin. As of 2026-11-14 the
   C80 (`QK75EHEARGB`) is **not** listed, and the archives return 404 on cidoo.illumipc.com, wraith.software, www/glick.illumipc.com.
   Archive names carry a platform code: 31× `W669` (the same code as the C80 ID string `W669,34,KB,ML,...`) and 6× `M484`

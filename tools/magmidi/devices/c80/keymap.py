@@ -1,8 +1,8 @@
 """Read / change the C80 keymap (default + Fn layer) over the vendor protocol.
 
-    PYTHONPATH=tools .venv/bin/python -m c80.keymap dump [-o keymap.yaml] [--changed] [--raw]
-    PYTHONPATH=tools .venv/bin/python -m c80.keymap set fn J F13      # one key; "stock" reverts it
-    PYTHONPATH=tools .venv/bin/python -m c80.keymap restore captures/keymap_backup_<ts>.json
+    PYTHONPATH=tools .venv/bin/python -m magmidi.devices.c80.keymap dump [-o keymap.yaml] [--changed] [--raw]
+    PYTHONPATH=tools .venv/bin/python -m magmidi.devices.c80.keymap set fn J F13      # one key; "stock" reverts it
+    PYTHONPATH=tools .venv/bin/python -m magmidi.devices.c80.keymap restore captures/c80/keymap_backup_<ts>.json
 
 Protocol (from the official web driver, `getLayoutKey` / `_fetchAllKeyData`):
     request  [18 80] (default layer) or [18 82] (Fn layer)
@@ -25,9 +25,9 @@ import time
 
 from .transport import C80, hexdump, packet
 
-ROOT = pathlib.Path(__file__).resolve().parents[2]
-LAYOUT = ROOT / "vendor/webdriver/config/keys/QK75EHEARGB.json"
-FIXED = ROOT / "vendor/webdriver/config/keys.json"
+from ...paths import C80_LAYOUT_JSON, ROOT, VENDOR_C80, captures
+LAYOUT = C80_LAYOUT_JSON
+FIXED = VENDOR_C80 / "config/keys.json"
 LAYERS = {"default": 0x80, "fn": 0x82}
 WRITE_FLAG = {"default": 0x00, "fn": 0x02}
 N_SLOTS = 132
@@ -121,7 +121,7 @@ def dump(args):
             result[layer] = rows
 
     ts = time.strftime("%Y%m%d_%H%M%S")
-    cap = ROOT / f"captures/keymap_{ts}.txt"
+    cap = captures("c80") / f"keymap_{ts}.txt"
     cap.write_text("\n".join(raw) + "\n")
 
     for layer, rows in result.items():
@@ -217,7 +217,7 @@ def apply(layer: str, changes: dict[int, tuple], backup_note: str):
         before, _ = read_layer(kb, layer)
         _check_layout(before, layer)
         ts = time.strftime("%Y%m%d_%H%M%S")
-        bak = ROOT / f"captures/keymap_backup_{ts}.json"
+        bak = captures("c80") / f"keymap_backup_{ts}.json"
         bak.write_text(json.dumps({"layer": layer, "note": backup_note,
                                    "entries": {i: bytes(e).hex() for i, e in sorted(before.items())}}, indent=0))
         print(f"backup: {bak.relative_to(ROOT)}")
@@ -237,7 +237,7 @@ def apply(layer: str, changes: dict[int, tuple], backup_note: str):
         if bad:
             print(f"VERIFY FAILED at {sorted(bad)}: " + ", ".join(
                 f"{i}={bytes(check.get(i, ())).hex()}" for i in sorted(bad)))
-            print(f"restore with: python -m c80.keymap restore {bak.relative_to(ROOT)}")
+            print(f"restore with: python -m magmidi.devices.c80.keymap restore {bak.relative_to(ROOT)}")
             raise SystemExit(1)
         print("verified: read-back matches")
 

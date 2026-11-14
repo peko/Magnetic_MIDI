@@ -1,7 +1,7 @@
 # CIDOO C80 vendor HID protocol
 
 Source: static analysis of the official web driver `https://cidoo.illumipc.com/` (v2 `app.js`,
-snapshot in `vendor/webdriver/`, formatted copy in `vendor/webdriver/pretty/app.pretty.js`)
+snapshot in `vendor/c80/webdriver/`, formatted copy in `vendor/c80/webdriver/pretty/app.pretty.js`)
 plus live tests on firmware `QK75EHEARGB V3.22.00` (build Aug 20 2026).
 
 The same white-label driver platform (internal OEM tag `mile_*`, ID string contains `ML`) is
@@ -16,7 +16,7 @@ probably applies to their HE boards too.
 
 ## Key indexing
 `index = row * 22 + col`, with 6 rows and 22 columns (132 slots, 82 used on the C80).
-The layout (name, HID code, position) is in `vendor/webdriver/config/keys/QK75EHEARGB.json`.
+The layout (name, HID code, position) is in `vendor/c80/webdriver/config/keys/QK75EHEARGB.json`.
 Mask format, used by several commands: 22 bytes, where bit `row` of byte `col` selects `row*22+col`.
 
 ## Commands
@@ -46,12 +46,12 @@ Other command codes seen in the bundle but not yet exercised: `0x02/0x07/0x08/0x
 - Time to go from 0.4 to 2.0 mm across 82 strokes: min ≈ 0 (a single sample jumps past both thresholds), p25 6 ms, median 9 ms, p75 15 ms, slowest ~490 ms.
   That range is wide enough for a usable velocity curve.
 - A fast stroke can jump from 0 straight to about 1.5 mm in one sample.
-- The stream kept running for 60 s without a heartbeat, but `tools/c80/stream.py` sends `0x01` every 2 s anyway.
+- The stream kept running for 60 s without a heartbeat, but `tools/magmidi/devices/c80/stream.py` sends `0x01` every 2 s anyway.
 - While the stream is open, normal HID key reports keep arriving on interfaces 0 and 1.
 
 ## Keymap entries (`0x18`)
 Each key takes 4 bytes `code1, hid, code3, code4`. `code1` is the action type. The names come from the driver's
-`config/keys.json` (snapshot in `vendor/webdriver/config/keys.json`; all fields there are hex).
+`config/keys.json` (snapshot in `vendor/c80/webdriver/config/keys.json`; all fields there are hex).
 
 | code1 | meaning | fields |
 |---|---|---|
@@ -68,7 +68,7 @@ Each key takes 4 bytes `code1, hid, code3, code4`. `code1` is the action type. T
 Write: `[18 layer page_hi page_lo len data≤56]`, where **layer 0 = default and 2 = Fn** (read flag = `0x80 | layer`), sent for
 pages 0..9 in turn. The keyboard acks each page with `[18 00|layer ...]`. Afterwards the driver polls `0x01` until bit 1 of
 `reply[22]` (the storing flag) clears. The driver always sends the full 132×4-byte buffer (528 B), with zeros for every key that is not
-remapped. Implemented in `c80.keymap set/restore` (read → backup JSON → write → read-back verify).
+remapped. Implemented in `magmidi.devices.c80.keymap set/restore` (read → backup JSON → write → read-back verify).
 Tested on 2026-11-14 with `set fn J F13`: all 10 pages were acked, the storing flag was never observed (status polled for ~300 ms),
 the read-back matched, and evdev showed Fn+J → `KEY_F13` while plain J stayed `KEY_J`.
 The remap persisted across a USB replug (re-enumerated 19:50, dump still showed `J -> F13`), so the write reaches flash even
@@ -87,5 +87,5 @@ are not exposed by this command.
 | `[09 L page_hi page_lo len rgb≤54]` | Write custom colours of layer L, pages 0..7. The keyboard acks each page with `[09 L ...]`. |
 
 Factory custom layers on this unit: layer 0 = W A S D PgDn Down Right + slot 126 in red, layer 1 = all letters in blue.
-`c80.light` / `c80.midi --light` read the config and the active layer, save `captures/light_backup_*.json`, write the note colours, switch to mode 10,
+`magmidi.devices.c80.light` / `magmidi.midi --light` read the config and the active layer, save `captures/c80/light_backup_*.json`, write the note colours, switch to mode 10,
 and restore everything on exit. The custom colours are assumed to live in flash, so they are written once per session, not per note.
