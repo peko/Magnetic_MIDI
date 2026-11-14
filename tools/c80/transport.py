@@ -29,6 +29,10 @@ DANGEROUS_CMDS = {0x0B: "enter bootloader", 0x14: "reset / factory reset"}
 # Commands that also write (to flash), allowed only with the listed flag bytes (the read variants).
 READ_ONLY_FLAGS = {
     0x18: {0x80, 0x82},  # keymap: 0x80 read default layer, 0x82 read Fn layer (0/1 would write)
+    0x07: {0x01},  # lighting config read (flag 0 = write)
+    0x09: {0x20, 0x80, 0x81},  # custom light: 0x20 current layer, 0x80/0x81 read colours (0/1 = write)
+    0x0A: {0x00},  # lighting mode list
+    0x0E: {0x00},  # Fn-locked key mask
 }
 
 

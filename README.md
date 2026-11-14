@@ -23,6 +23,8 @@ On this machine `/dev/hidraw*` is mode 0666 and the user is in the `input` group
 .venv/bin/python tools/stream_probe.py trigger 20 # live travel per key -> captures/
 .venv/bin/python tools/stream_probe.py adc 5      # raw Hall ADC frames (~50 Hz)
 PYTHONPATH=tools .venv/bin/python -m c80.midi -v  # virtual MIDI port "CIDOO C80"; Esc quits
+PYTHONPATH=tools .venv/bin/python -m c80.midi -v --light  # same, with note keys lit (restored on exit)
+PYTHONPATH=tools .venv/bin/python -m c80.light show -v      # lighting config + custom colours (read-only)
 PYTHONPATH=tools .venv/bin/python -m c80.keymap dump [--changed] [-o km.yaml]  # read both layers (read-only)
 PYTHONPATH=tools .venv/bin/python -m c80.keymap set fn J F13   # remap one key (backup + verify); 'stock' reverts
 .venv/bin/python tools/viz.py                    # live TUI: per-key travel + strike velocity (Ctrl+C)

@@ -1,15 +1,18 @@
 """CIDOO C80 → velocity-sensitive MIDI.
 
-    python -m c80.midi [--config layout.yaml] [--no-grab] [--port-name "CIDOO C80"]
+    python -m c80.midi [--config layout.yaml] [--no-grab] [--port-name "CIDOO C80"] [--light]
 
 Velocity = time to travel from `vel_lo` to `vel_hi` (0.01 mm units), mapped logarithmically
 between `fast_ms` (→127) and `slow_ms` (→1). Note-on fires at `vel_hi`; note-off when
 travel drops below `release`. Travel beyond `vel_hi` is sent as polyphonic aftertouch.
 Press Esc on the C80 to quit (the keyboard is grabbed so it doesn't type while playing).
+--light colours the note keys (C red, white keys white, sharps blue, quit key red) for the session and
+restores the previous lighting on exit (two flash writes per session; see c80.light).
 """
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import math
 import pathlib
@@ -71,11 +74,20 @@ class Voice:
         self.note, self.t_lo, self.on, self.prev, self.last_at = note, None, False, 0, -1
 
 
+def _lighting(kb, cfg, names, a):
+    if not a.light:
+        return contextlib.nullcontext()
+    from .light import NoteLighting, note_colours
+    return NoteLighting(kb, note_colours(cfg, names), a.brightness)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--config")
     ap.add_argument("--no-grab", action="store_true", help="don't grab evdev (keys will also type)")
     ap.add_argument("--port-name", default="CIDOO C80")
+    ap.add_argument("--light", action="store_true", help="colour the note keys while running")
+    ap.add_argument("--brightness", type=int, help="lighting brightness 0-4 with --light")
     ap.add_argument("-v", "--verbose", action="store_true")
     a = ap.parse_args(argv)
     cfg = load_config(a.config)
@@ -104,7 +116,8 @@ def main(argv=None):
     print(f"MIDI port '{a.port_name}' open; {len(voices)} keys mapped; grabbed {len(grabbed)} evdev nodes. "
           f"Press {cfg['quit_key']} on the C80 to quit.", flush=True)
     try:
-        with C80() as kb, TravelStream(kb, list(voices) + ([quit_idx] if quit_idx is not None else [])) as st:
+        with C80() as kb, _lighting(kb, cfg, names, a), \
+                TravelStream(kb, list(voices) + ([quit_idx] if quit_idx is not None else [])) as st:
             for t, idx, v in st.events():
                 if idx is None:
                     continue
