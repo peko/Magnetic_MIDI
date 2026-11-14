@@ -36,7 +36,7 @@ Mask format, used by several commands: 22 bytes, where bit `row` of byte `col` s
 | `0x14` | — | `[14 00 00 00 01 01]` reboots the keyboard. `[14 02]` is a **factory reset.** `[14 02 ..]` is also the sleep timer. | blocked |
 
 Other command codes seen in the bundle but not yet exercised: `0x02/0x07/0x08/0x09/0x0A` (lighting),
-`0x0E` (Fn-editable keys), `0x18` flag 0/1 (keymap write), `0x19` (macros), `0x20` (app function trigger),
+`0x0E` (Fn-editable keys), `0x18` flag 0/2 (keymap write, see below), `0x19` (macros), `0x20` (app function trigger),
 `0x22` (advanced keys: DKS/MT/TGL/SOCD), `0x24` (PRCS power), `0x25` (switch type list),
 `0x26` (dead band), `0x21` subs `0x07/0x08/0x0F` (calibration), `0x09` (poll rate), `0x11/0x12` (profile).
 
@@ -64,8 +64,13 @@ Each key takes 4 bytes `code1, hid, code3, code4`. `code1` is the action type. T
 | `13` | modifier combo | `hid` = modifier usage (E0..E7), `code3` = key usage |
 | `18`/`19` | gamepad (classic / XInput) | `hid` = axis/button id |
 
-Write (not yet implemented or tested): `[18 layer(0=default,1=Fn) page_hi page_lo len data≤56]` for each page in turn, with an ack after
-each page, then poll `0x01` until bit 1 of `data[22]` (the storing flag) clears. The driver always sends the full
-132×4-byte buffer, with zeros for every key that is not remapped.
+Write: `[18 layer page_hi page_lo len data≤56]`, where **layer 0 = default and 2 = Fn** (read flag = `0x80 | layer`), sent for
+pages 0..9 in turn. The keyboard acks each page with `[18 00|layer ...]`. Afterwards the driver polls `0x01` until bit 1 of
+`reply[22]` (the storing flag) clears. The driver always sends the full 132×4-byte buffer (528 B), with zeros for every key that is not
+remapped. Implemented in `c80.keymap set/restore` (read → backup JSON → write → read-back verify).
+Tested on 2026-11-14 with `set fn J F13`: all 10 pages were acked, the storing flag was never observed (status polled for ~300 ms),
+the read-back matched, and evdev showed Fn+J → `KEY_F13` while plain J stayed `KEY_J`.
+The remap persisted across a USB replug (re-enumerated 19:50, dump still showed `J -> F13`), so the write reaches flash even
+though the storing flag was never seen.
 On this unit (2026-11-14) both layers are all zeros, so nothing is remapped. Firmware-built-in Fn functions (media on F-keys, etc.)
 are not exposed by this command.
