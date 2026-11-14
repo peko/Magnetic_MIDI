@@ -27,6 +27,8 @@ GET = SET | 0x80.
 | `0x88` | side-LED params, same format (`01 03 04 08 ff ff ff`) | ✅ |
 | `0x85` | LED on/off — no reply on this firmware (returns the request buffer) | ✅ |
 | `0x8C [slot FF block]` | userpic (per-key colours) slot 0–4, 6 blocks × 64 B → 126 × RGB, index = col·6 + row. Slots 0–3 hold red factory presets (WASD+arrows; 14 / 33 / 33 keys), slot 4 empty | ✅ read |
+| `0x07 [mode speed bri opt R G B]` | set LED params (byte-8 checksum, no reply), persists. User Picture: mode 13, opt = slot<<4, colour `00 C8 C8` | ✅ |
+| `0x0C [slot FF page len last 0] + rgb` | write userpic slot, 7 pages × 56 B (last 42 B, last = 1), persists; read-back via `0x8C` matched | ✅ |
 | `0x1B 01` / `0x1B 00` | depth report on / off (runtime, acked by echo `1b 01`) | ✅ |
 | `0x8A [profile FF page layer]` | keymatrix, 8 pages × 16 entries × 4 B, index = col·6 + row | ✅ read |
 | `0x90 [sys profile FF page]` | Fn table, sys 0 = Win, 1 = Mac | ✅ read |

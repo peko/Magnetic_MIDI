@@ -39,6 +39,14 @@ DANGEROUS_CMDS = {
     0x30: "OLED bootloader",
     0x31: "OLED boot start",
 }
+# Writes allowed without allow_unsafe, each only with arguments inside these bounds (the firmware does not
+# bounds-check chunked writes). Both persist to flash.
+#   0x07 SET_LEDPARAM [mode speed brightness option R G B]   mode 0-25, speed 0-4, brightness 0-4
+#   0x0C SET_USERPIC  [slot FF page len last 0] + rgb         slot 0-4, page 0-6, len <= 56, last 0/1
+CHECKED_WRITES = {
+    0x07: lambda p: p[1] <= 25 and p[2] <= 4 and p[3] <= 4,
+    0x0C: lambda p: p[1] <= 4 and p[2] == 0xFF and p[3] <= 6 and p[4] <= 56 and p[5] in (0, 1),
+}
 BIT8_CMDS = {0x07, 0x08}  # SET_LEDPARAM / SET_SLEDPARAM only; their GETs (0x87/0x88) use Bit7
 
 
@@ -101,7 +109,10 @@ class FUN68:
         cmd = pkt[0]
         if cmd in DANGEROUS_CMDS:
             raise PermissionError(f"refusing dangerous command 0x{cmd:02X} ({DANGEROUS_CMDS[cmd]})")
-        if cmd not in SAFE_CMDS and not self.allow_unsafe:
+        if cmd in CHECKED_WRITES:
+            if not CHECKED_WRITES[cmd](pkt):
+                raise PermissionError(f"command 0x{cmd:02X} arguments out of range: {hexdump(pkt[:8])}")
+        elif cmd not in SAFE_CMDS and not self.allow_unsafe:
             raise PermissionError(f"command 0x{cmd:02X} not in SAFE_CMDS; pass allow_unsafe=True")
         buf = bytearray([0]) + pkt
         fcntl.ioctl(self.fd, HIDIOCSFEATURE(len(buf)), buf)

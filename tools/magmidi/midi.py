@@ -8,7 +8,8 @@ between `fast_ms` (→127) and `slow_ms` (→1). Note-on fires at `vel_hi`; note
 `release`. Travel beyond `vel_hi` is sent as polyphonic aftertouch. If a deeper value than `full_travel` is
 seen, it grows to it (-v prints the new value). Press the quit key (Esc) on the keyboard to quit; its evdev
 nodes are grabbed so it doesn't type while you play.
---light (C80 only) colours the note keys for the session and restores the lighting on exit.
+--light colours the note keys for the session and restores the lighting on exit (C80: custom layer; FUN68: userpic
+slot 4 + User Picture mode).
 Config keys: see velocity.DEFAULTS, COMMON below and the device's spec.DEFAULTS (notes map by layout key name).
 """
 from __future__ import annotations
@@ -40,7 +41,7 @@ def main(argv=None):
     ap.add_argument("--config")
     ap.add_argument("--no-grab", action="store_true", help="don't grab evdev (keys will also type)")
     ap.add_argument("--port-name", help="virtual MIDI port name (default: device name)")
-    ap.add_argument("--light", action="store_true", help="colour the note keys while running (C80)")
+    ap.add_argument("--light", action="store_true", help="colour the note keys while running")
     ap.add_argument("--brightness", type=int, help="lighting brightness 0-4 with --light")
     ap.add_argument("-v", "--verbose", action="store_true")
     a = ap.parse_args(argv)

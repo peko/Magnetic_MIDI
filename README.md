@@ -32,11 +32,12 @@ the keyboard needs the `input` group.
 ```sh
 python3 tools/viz.py [--device fun68]                              # live TUI: travel per key + strike velocity
 PYTHONPATH=tools .venv/bin/python -m magmidi.midi -v               # virtual MIDI port named after the device
-PYTHONPATH=tools .venv/bin/python -m magmidi.midi --device c80 --light   # C80: note keys lit, restored on exit
+PYTHONPATH=tools .venv/bin/python -m magmidi.midi --light         # note keys lit for the session, restored on exit
 PYTHONPATH=tools python3 -m magmidi.devices.c80.keymap dump [--changed] [-o km.yaml]   # read-only
 PYTHONPATH=tools python3 -m magmidi.devices.c80.keymap set fn J F13   # remap one key (backup + verify)
 PYTHONPATH=tools python3 -m magmidi.devices.c80.light show -v      # C80 lighting (read-only)
 PYTHONPATH=tools python3 -m magmidi.devices.fun68.keymap dump [--changed] [--raw] [--profile N]  # read-only
+PYTHONPATH=tools python3 -m magmidi.devices.fun68.light show [-v]  # FUN68 LED params + userpic slots (read-only)
 .venv/bin/python tools/scripts/c80/probe_readonly.py              # C80 firmware id, status, trigger config
 .venv/bin/python tools/scripts/c80/stream_probe.py trigger 20     # C80 raw travel log -> captures/c80/
 python3 tools/scripts/depth_probe.py [--device fun68] 40          # record travel, per-key maxima + cadence (calibration)
@@ -50,6 +51,7 @@ Esc on the keyboard quits. Connect the port with `aconnect` or pick it in your D
 Each transport refuses commands that reset or brick the keyboard and, by default, allows only verified ones:
 - C80 (`devices/c80/transport.py`): blocks `0x0B` (bootloader) and `0x14` (reset / factory reset).
 - FUN68 (`devices/fun68/transport.py`): blocks `0x01` (factory reset), `0x7F` (bootloader, wipes config), `0xC5`,
-  `0x1C`/`0x1E` (calibration), `0x30`/`0x31`. Never request FUN68 keymatrix layers > 3 (no bounds check in firmware).
+  `0x1C`/`0x1E` (calibration), `0x30`/`0x31`. The only writes allowed are `0x07` (LED params) and `0x0C` (userpic),
+  each with range-checked arguments; `--light` uses userpic slot 4 and restores the LED params on exit. Never request FUN68 keymatrix layers > 3 (no bounds check in firmware).
 
 Firmware work is research-only for now.

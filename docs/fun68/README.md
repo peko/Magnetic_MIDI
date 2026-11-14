@@ -10,4 +10,4 @@
   dangerous opcodes).
 
 Calibrated: bottom-out 720 raw, reports every ~1.4 ms while moving (see protocol.md). Open items: confirming the
-raw unit in mm, lighting for `magmidi.midi --light`, keymap write.
+raw unit in mm, keymap write. Note lighting (`--light`) works since 2026-11-14 (userpic slot 4).

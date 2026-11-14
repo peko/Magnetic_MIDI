@@ -41,7 +41,10 @@ def keys() -> list[dict]:
 
 @contextlib.contextmanager
 def stream(indices, cfg=None, light=False, brightness=None):
-    if light:
-        print("--light is not implemented for the FUN68 yet; ignoring")
-    with FUN68() as kb, DepthStream(kb) as st:
-        yield st
+    with contextlib.ExitStack() as stack:
+        kb = stack.enter_context(FUN68())
+        if light:
+            from .light import NoteLighting, note_colours
+
+            stack.enter_context(NoteLighting(kb, note_colours(cfg), brightness))
+        yield stack.enter_context(DepthStream(kb))
