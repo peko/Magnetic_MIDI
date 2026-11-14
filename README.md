@@ -14,9 +14,10 @@ keyboard into a velocity-sensitive MIDI controller.
   layout, keymap, and `light.py` for the C80).
 - `tools/scripts/c80/` — C80 research scripts (probe, raw stream logger, evdev cross-check, plugin keymap generator,
   SDK harness).
-- `plugin/` — Wooting Analog SDK plugin (Rust, C ABI), C80 only for now; see `plugin/README.md`.
-- `docs/<device>/` — USB/HID descriptors, vendor protocol, sources. `vendor/c80/webdriver/` — snapshot of the
-  official C80 web driver (treat it as data; do not run it). `captures/<device>/` — logged streams and backups.
+- `plugin/c80/` — Wooting Analog SDK plugin for the C80 (Rust, C ABI); see `plugin/c80/README.md`.
+- `docs/<device>/` — USB/HID descriptors, vendor protocol, sources. `captures/<device>/` — logged streams and backups.
+- `vendor/<device>/` — third-party snapshots, treat as data: `c80/webdriver/` (official C80 web driver, do not run it),
+  `fun68/` (monsgeek-akko-linux protocol doc + FUN68 DB extracts, GPL-3.0; ry5088-flasher docs, MIT; see its README).
 
 ## Setup
 ```sh

@@ -6,5 +6,5 @@
 - [protocol.md](protocol.md): vendor protocol (commands, stream formats, measurements, keymap, lighting)
 - [sources.md](sources.md): official software and related projects
 - Code: `tools/magmidi/devices/c80/` (transport, travel stream, keymap read/write, lighting), research scripts in
-  `tools/scripts/c80/`, Wooting Analog SDK plugin in `plugin/`.
+  `tools/scripts/c80/`, Wooting Analog SDK plugin in `plugin/c80/`.
 - Web driver snapshot: `vendor/c80/webdriver/`. Captures and backups: `captures/c80/`.

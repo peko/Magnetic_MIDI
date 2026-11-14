@@ -1,0 +1,7 @@
+{
+ "source": "data/key_layouts.json",
+ "layouts": {
+  "Common68_K80X68": "常规68键(home del pgup pgdn)",
+  "Common68_fun68_uk": "常规68键(fun68_uk)德语"
+ }
+}

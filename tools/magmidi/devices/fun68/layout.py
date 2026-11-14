@@ -1,7 +1,8 @@
 """FUN68 physical layout: matrix index (col*6 + row) -> key name and position in key units.
 
 Matrix from monsgeek-akko-linux data/device_matrices.json, entry 12625:20528:2811
-(ry5088_akko_fun68_8k_8k_3m, layout Common68_K80X68). Row 0 is unused. Fn (65) is not in that
+(ry5088_akko_fun68_8k_8k_3m, layout Common68_K80X68); snapshot in
+vendor/fun68/monsgeek-akko-linux/data/device_matrices_fun68.json. Row 0 is unused. Fn (65) is not in that
 matrix (stock entry `0A 01 00 00` = Fn) but has its own slot; whether it reports depth is unverified.
 """
 from __future__ import annotations
