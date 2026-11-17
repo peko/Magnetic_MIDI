@@ -18,6 +18,7 @@ import argparse
 import json
 import time
 
+from ...colours import key_colours
 from ...paths import ROOT, captures
 from .layout import BY_INDEX, BY_NAME
 from .transport import FUN68, packet
@@ -78,30 +79,12 @@ def write_userpic(kb: FUN68, slot: int, data: bytes):
 
 
 # ---------------------------------------------------------------- note colouring
-WHITE, BLACK, ROOT_C, QUIT = (150, 150, 150), (0, 40, 255), (255, 40, 0), (255, 0, 0)
-BLACK_PCS = {1, 3, 6, 8, 10}
-
-
-PEDAL = (0, 255, 40)  # sustain key: green
-CONTROL = (255, 160, 0)  # transpose arrows + shift: amber
-
-
 def note_colours(midi_cfg: dict) -> bytes:
     buf = bytearray(USERPIC_BYTES)
-    for name, off in midi_cfg["notes"].items():
-        idx = BY_NAME[name]
-        pc = (midi_cfg["base_note"] + off) % 12
-        buf[3 * idx:3 * idx + 3] = bytes(ROOT_C if pc == 0 else BLACK if pc in BLACK_PCS else WHITE)
-    sp = BY_NAME.get(midi_cfg.get("sustain_key") or "")
-    if sp is not None:
-        buf[3 * sp:3 * sp + 3] = bytes(PEDAL)
-    for name in list(midi_cfg.get("transpose_keys") or {}) + list(midi_cfg.get("shift_keys") or []):
-        i = BY_NAME.get(name)
-        if i is not None:
-            buf[3 * i:3 * i + 3] = bytes(CONTROL)
-    q = BY_NAME.get(midi_cfg.get("quit_key", ""))
-    if q is not None:
-        buf[3 * q:3 * q + 3] = bytes(QUIT)
+    for name, rgb in key_colours(midi_cfg).items():
+        idx = BY_NAME.get(name)
+        if idx is not None:
+            buf[3 * idx:3 * idx + 3] = bytes(rgb)
     return bytes(buf)
 
 

@@ -24,6 +24,7 @@ import time
 
 from .transport import C80, packet
 
+from ...colours import key_colours
 from ...paths import C80_LAYOUT_JSON, ROOT, VENDOR_C80, captures
 N_KEYS = 132
 PAGE_KEYS = 18
@@ -90,31 +91,12 @@ def write_custom(kb: C80, layer: int, buf: bytes) -> int:
 
 
 # ---------------------------------------------------------------- note colouring
-WHITE, BLACK, ROOT_C, OFF = (150, 150, 150), (0, 40, 255), (255, 40, 0), (0, 0, 0)
-BLACK_PCS = {1, 3, 6, 8, 10}
-
-
-PEDAL = (0, 255, 40)  # sustain key: green
-CONTROL = (255, 160, 0)  # transpose arrows + shift: amber
-
-
 def note_colours(midi_cfg: dict, layout: dict) -> bytearray:
     buf = bytearray(N_KEYS * 3)  # everything else off
-    for name, off in midi_cfg["notes"].items():
-        idx = layout[name]
-        pc = (midi_cfg["base_note"] + off) % 12
-        col = ROOT_C if pc == 0 else BLACK if pc in BLACK_PCS else WHITE
-        buf[3 * idx:3 * idx + 3] = bytes(col)
-    sp = layout.get(midi_cfg.get("sustain_key") or "")
-    if sp is not None:
-        buf[3 * sp:3 * sp + 3] = bytes(PEDAL)
-    for name in list(midi_cfg.get("transpose_keys") or {}) + list(midi_cfg.get("shift_keys") or []):
-        i = layout.get(name)
-        if i is not None:
-            buf[3 * i:3 * i + 3] = bytes(CONTROL)
-    q = layout.get(midi_cfg.get("quit_key", ""))
-    if q is not None:
-        buf[3 * q:3 * q + 3] = bytes((255, 0, 0))
+    for name, rgb in key_colours(midi_cfg).items():
+        idx = layout.get(name)
+        if idx is not None:
+            buf[3 * idx:3 * idx + 3] = bytes(rgb)
     return buf
 
 

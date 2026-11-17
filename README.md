@@ -8,9 +8,13 @@ keyboard into a velocity-sensitive MIDI controller.
 | CIDOO C80 | `2e3c:c368`, fw `QK75EHEARGB V3.22.00` | illumipc white-label (usage page 0xFF1B) | cmd `0x21` trigger test, 0.01 mm, ~1 ms | [docs/c80](docs/c80/) |
 | MonsGeek FUN68 HE | `3151:5030`, dev_id 2811, fw 0x0504 | RongYuan RY5088 (usage page 0xFFFF, feature reports) | cmd `0x1B` depth report, 0–720 raw, ~1.4 ms | [docs/fun68](docs/fun68/) |
 
+The C80 hardware is no longer available (2026-11); its backend is kept but has not been re-tested since the merge.
+Active development and testing are on the FUN68.
+
 ## Layout
-- `tools/magmidi/` — shared core: `midi.py` (MIDI bridge), `viz.py` (live TUI), `velocity.py` (strike model),
-  `paths.py`; device backends in `devices/<name>/` (`spec.py` = common interface, plus transport, stream,
+- `tools/magmidi/` — shared core: `midi.py` (MIDI bridge), `layouts.py` (in-key note layouts, see
+  [docs/layouts.md](docs/layouts.md)), `tui.py` (bridge view: keyboard + piano), `viz.py` (travel TUI),
+  `velocity.py` (strike model), `colours.py` (`--light` colours), `paths.py`; device backends in `devices/<name>/` (`spec.py` = common interface, plus transport, stream,
   layout, keymap, and `light.py` for the C80).
 - `tools/scripts/c80/` — C80 research scripts (probe, raw stream logger, evdev cross-check, plugin keymap generator,
   SDK harness).
@@ -32,6 +36,8 @@ the keyboard needs the `input` group.
 ```sh
 python3 tools/viz.py [--device fun68]                              # live TUI: travel per key + strike velocity
 PYTHONPATH=tools .venv/bin/python -m magmidi.midi -v               # virtual MIDI port named after the device
+PYTHONPATH=tools .venv/bin/python -m magmidi.midi --tui --to FLUID # keyboard + piano view, output straight to FluidSynth
+PYTHONPATH=tools .venv/bin/python -m magmidi.midi --scale minor    # in-key layout in another mode; --layout piano = old map
 PYTHONPATH=tools .venv/bin/python -m magmidi.midi --light         # note keys lit for the session, restored on exit
 PYTHONPATH=tools python3 -m magmidi.devices.c80.keymap dump [--changed] [-o km.yaml]   # read-only
 PYTHONPATH=tools python3 -m magmidi.devices.c80.keymap set fn J F13   # remap one key (backup + verify)
@@ -43,10 +49,13 @@ PYTHONPATH=tools python3 -m magmidi.devices.fun68.light show [-v]  # FUN68 LED p
 python3 tools/scripts/depth_probe.py [--device fun68] 40          # record travel, per-key maxima + cadence (calibration)
 ```
 `magmidi.midi` grabs the keyboard's evdev nodes so it doesn't type while you play (`--no-grab` disables this);
-Esc on the keyboard quits. Space is the sustain pedal, inverted by default (sustain on while Space is up, pressing
+Esc on the keyboard quits. The default note layout is **thirds**: in-key, the tonic chord under the resting fingers
+(left S D F, right J K L), adjacent home-row keys a third apart (3 adjacent keys = a triad), steps on the diagonals
+to the bottom row, upper row = +1 octave, left hand an octave below the right; LAlt/RAlt held raise that hand by a
+semitone. Theory and chord charts: [docs/layouts.md](docs/layouts.md). Space is the sustain pedal, inverted by default (sustain on while Space is up, pressing
 it damps; `sustain_inverted: false` for a normal pedal). Arrows transpose by a semitone (Up/Right +, Down/Left −),
-Shift+arrows by an octave; `--light` shows Space green and arrows/Shift amber (colours stay in the base key —
-recolouring would cost a flash write per change). Connect the port with `aconnect` or pick it in your DAW. `--config file.yaml` overrides
+Shift+arrows by an octave; `--light` colours notes by scale degree (tonic orange, 3rd/5th white, other steps blue,
+so they stay right after transposing), Space green, arrows/Shift/Alt amber. Connect the port with `aconnect` or pick it in your DAW. `--config file.yaml` overrides
 `velocity.DEFAULTS`, `midi.COMMON` and the device's `spec.DEFAULTS` (note map by layout key name; thresholds
 `vel_lo` / `vel_hi` / `release` as fractions of `full_travel`).
 
