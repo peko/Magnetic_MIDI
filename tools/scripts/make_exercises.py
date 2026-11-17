@@ -3,7 +3,7 @@
 
     .venv/bin/python tools/scripts/make_exercises.py
 
-All in C major; key names in comments are the computer keys of the thirds layout (docs/layouts.md).
+All in C major except 06 (D major, to show the trainer moving the layout); key names in comments are the computer keys of the thirds layout (docs/layouts.md).
 """
 from __future__ import annotations
 
@@ -22,14 +22,14 @@ def deg(d, base):
     return base + DEG[d]
 
 
-def write(name, bpm, right, left, title):
+def write(name, bpm, right, left, title, key="C"):
     """right/left: [(start_beat, length_beats, [pitches])]."""
     mid = mido.MidiFile(ticks_per_beat=TPB)
     meta = mido.MidiTrack([
         mido.MetaMessage("track_name", name=title, time=0),
         mido.MetaMessage("set_tempo", tempo=mido.bpm2tempo(bpm), time=0),
         mido.MetaMessage("time_signature", numerator=4, denominator=4, time=0),
-        mido.MetaMessage("key_signature", key="C", time=0),
+        mido.MetaMessage("key_signature", key=key, time=0),
     ])
     mid.tracks.append(meta)
     for tname, part, ch in (("Right hand", right, 0), ("Left hand", left, 1)):
@@ -114,6 +114,22 @@ def main():
     I, V = triad(0, C3), [deg(1, C3), deg(4, C3), deg(6, C3)]
     acc = [(4, I), (4, V), (4, I), (4, V), (4, I), (4, V), (4, I), (2, V), (2, I)]
     write("05_ode_to_joy", 96, seq(mel), seq(acc), "Ode to Joy (Beethoven), melody + I/V triads")
+
+    # 06: Canon in D (Pachelbel, public domain), simple version in D major: the trainer moves the tonic D onto S / J.
+    # Left hand: the 8-chord ground I V vi iii IV I IV V as home/bottom-row windows, two beats each:
+    #   S D F (D) | X F G (A, 2nd inversion) | A S D (Bm) | D F G (F#m) | C V B (G) | S D F | C V B | X F G
+    # Right hand: violin line 1 (F# E D C# B A B C#), then line 2 (D C# B A G F# G E), then both together as dyads.
+    D3, D4 = 50, 62
+    ground = [(0, 2, 4), (1, 4, 6), (-2, 0, 2), (2, 4, 6), (3, 5, 7), (0, 2, 4), (3, 5, 7), (1, 4, 6)]
+    line1 = [9, 8, 7, 6, 5, 4, 5, 6]
+    line2 = [7, 6, 5, 4, 3, 2, 3, 1]
+    left = seq([(2, [deg(d, D3) for d in ch]) for ch in ground] * 4 + [(4, [deg(d, D3) for d in (0, 2, 4)])])
+    right = seq([(2, [deg(d, D4)]) for d in line1], start=16)
+    right += seq([(2, [deg(d, D4)]) for d in line2], start=32)
+    right += seq([(2, [deg(a, D4), deg(b, D4)]) for a, b in zip(line1, line2)], start=48)
+    right += seq([(4, [deg(d, D4) for d in (0, 2, 4)])], start=64)
+    write("06_canon_in_d", 66, right, left,
+          "Canon in D (Pachelbel), simple: ground I-V-vi-iii-IV-I-IV-V, violin lines 1, 2, both", key="D")
 
 
 if __name__ == "__main__":

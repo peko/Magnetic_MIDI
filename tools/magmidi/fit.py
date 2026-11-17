@@ -65,16 +65,62 @@ SEARCH = [(True, 0), (True, 12), (True, -12), (False, 0), (True, 24), (True, -24
           (False, 24), (False, -24), (False, 36), (False, -36)]
 
 
+def _coords(name: str) -> tuple[float, float]:
+    """Approximate key position in key units (QWERTY stagger) for hand-span costs."""
+    from .layouts import BOTTOM, HOME, UPPER, canonical
+
+    c = canonical(name) or ""
+    for row, dx, y in ((UPPER, -0.25, -1.0), (HOME, 0.0, 0.0), (BOTTOM, 0.5, 1.0)):
+        if c in row:
+            return row.index(c) + dx, y
+    return 0.0, 0.0
+
+
+def _options(r, n):
+    """Candidates of the first search step that reaches the note: (fold, [candidates])."""
+    for own, fold in SEARCH:
+        cands = [c for c in r.get(n.pitch + fold, []) if c[1] == n.hand or not own]
+        if cands:
+            return fold, cands
+    return 0, []
+
+
+def _chord_cost(combo) -> float:
+    keys = [c[2] for c in combo]
+    if len(set(keys)) < len(keys):
+        return float("inf")  # one key can't play two notes
+    by_hand = {}
+    for c in combo:
+        by_hand.setdefault(c[1], set()).add(c[3])
+    if any(len(v) > 1 for v in by_hand.values()):
+        return float("inf")  # a hand can't hold its sharp modifier for some notes and not others
+    pts = [_coords(k) for k in keys]
+    span = max((((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5 for a in pts for b in pts), default=0.0)
+    return sum(c[0] for c in combo) + 2 * span
+
+
 def assign(score: Score, cfg: dict, transpose: int) -> list[Target]:
+    """Key per note. Notes struck together by one hand are chosen together: fewest awkward rows, smallest span."""
+    import itertools
+
     r = reach(cfg, transpose)
-    out = []
-    for n in score.notes:
-        for own, fold in SEARCH:
-            cands = [c for c in r.get(n.pitch + fold, []) if c[1] == n.hand or not own]
-            c = pick(cands, n.hand)
-            if c:
-                out.append(Target(n.pitch + fold, c[2], c[3], fold // 12))
-                break
+    opts = [_options(r, n) for n in score.notes]
+    out: list[Target | None] = [None] * len(score.notes)
+    groups: dict[tuple, list[int]] = {}
+    for i, n in enumerate(score.notes):
+        groups.setdefault((round(n.start / 0.03), n.hand), []).append(i)
+    for idxs in groups.values():
+        lists = [opts[i][1] for i in idxs]
+        if any(not cands for cands in lists):
+            best = None
         else:
-            out.append(Target(n.pitch, None, False, 0))
+            combos = itertools.islice(itertools.product(*lists), 2000)
+            best = min(combos, key=_chord_cost, default=None)
+            if best is not None and _chord_cost(best) == float("inf"):
+                best = None
+        for k, i in enumerate(idxs):
+            fold, cands = opts[i]
+            c = best[k] if best else pick(cands, score.notes[i].hand)
+            n = score.notes[i]
+            out[i] = Target(n.pitch + fold, c[2], c[3], fold // 12) if c else Target(n.pitch, None, False, 0)
     return out

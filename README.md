@@ -95,6 +95,8 @@ Keys:
 - broken chords
 - the I–IV⁶₄–V⁶–I cadence
 - Ode to Joy with left-hand triads
+- Canon in D (Pachelbel), simplified: the I–V–vi–iii–IV–I–IV–V ground as left-hand triads, then the two
+  violin lines, separately and together. It is in D major, so the trainer moves the tonic onto S/J.
 
 ## Safety
 Each transport refuses commands that reset or brick the keyboard and, by default, allows only verified ones:
