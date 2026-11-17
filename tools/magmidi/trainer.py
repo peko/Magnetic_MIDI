@@ -1,6 +1,6 @@
 """Play-along trainer: a MIDI score falls onto the piano, you play it on the magnetic keyboard.
 
-    PYTHONPATH=tools .venv/bin/python -m magmidi.trainer [SCORE] [--mode practice|game] [--hands both|right|left]
+    PYTHONPATH=tools .venv/bin/python -m magmidi.trainer [SCORE] [--mode practice|game|demo] [--hands both|right|left]
                                                          [--speed 1.0] [--zoom 3] [--to FLUID] [--device fun68]
 
 SCORE is a .mid path or the name/number of an exercise in scores/ ("05", "ode"); without it the exercises are
@@ -8,10 +8,11 @@ listed. The score is moved to the layout: its key (key signature, else detected)
 mode, notes out of reach are folded by octaves, and every falling note is labelled with the computer key that
 plays it ("♯" = hold that hand's Alt).
 
-Modes (Tab switches while playing):
+Modes (Tab cycles them while playing):
   practice  the score waits at each chord until you play all of its notes; wrong notes are counted.
   game      the score runs in tempo; each note is judged by timing (perfect ≤45 ms, good ≤90, ok ≤150 ms,
             else miss), and keys that match nothing are counted as wrong.
+  demo      the trainer plays everything itself (as the layout would sound it) and lights the keys: watch, listen.
 Parts you don't practise (--hands) play by themselves on MIDI channel 2.
 
 Keys: ←/→ previous/next bar, Shift+← start, ↑/↓ speed ±10%, Enter pause, Tab mode, Backspace restart
@@ -69,14 +70,19 @@ class Session:
                 self.groups[-1][1].append(i)
             else:
                 self.groups.append((n.start, [i]))
-        acc = []
-        for i, n in enumerate(sc.notes):
-            if i not in self.is_practised:
-                acc.append((n.start, 1, n.pitch, n.vel))
-                acc.append((n.end, 0, n.pitch, 0))
-        self.acc = sorted(acc, key=lambda e: (e[0], e[1]))
+        self._build_acc()
         self.lead_in = 2 * sc.beat
         self.restart(clear=True)
+
+    def _build_acc(self):
+        """Auto-played notes: the parts not practised, or everything in demo mode (at the pitch the layout plays)."""
+        acc = []
+        for i, n in enumerate(self.sc.notes):
+            if self.mode == "demo" or i not in self.is_practised:
+                p = self.tg[i].pitch if i in self.is_practised else n.pitch
+                acc.append((n.start, 1, p, n.vel))
+                acc.append((n.end, 0, p, 0))
+        self.acc = sorted(acc, key=lambda e: (e[0], e[1]))
 
     # ---------------------------------------------------------------- clock
     def restart(self, clear=False):
@@ -168,6 +174,8 @@ class Session:
     # ---------------------------------------------------------------- input
     def strike(self, pitch, now):
         self.struck[pitch] = now
+        if self.mode == "demo":
+            return
         if self.mode == "practice":
             if self.waiting() and pitch not in {self.tg[i].pitch for i in self.groups[self.gi][1]}:
                 self.errors += 1
@@ -216,7 +224,8 @@ class Session:
                     self.out.send_message([0xB0 | ACC_CH, 123, 0])
                     self.acc_sounding = set()
         elif name == "Tab":
-            self.mode = "game" if self.mode == "practice" else "practice"
+            self.mode = {"practice": "game", "game": "demo", "demo": "practice"}[self.mode]
+            self._build_acc()
             self.seek(self.pos)
         elif name == "Backspace":
             self.restart(clear=True)
@@ -245,7 +254,9 @@ def draw(scr, s: Session, br, title_key, zoom, g: PianoGeom, labels, now):
     hands = "+".join(sorted(s.hands)) if len(s.hands) == 1 else "both hands"
     put(scr, 0, 0, f" {sc.name} | {s.mode.upper()} | {hands} | key {title_key} | speed {s.speed:.0%} | "
                    f"bar {bar}/{len(sc.bars)} | {clock}" + (" | PAUSED" if s.paused else ""), curses.A_BOLD)
-    if s.mode == "practice":
+    if s.mode == "demo":
+        line = " demo: the trainer plays both hands; watch the labels — Tab: practice, then game"
+    elif s.mode == "practice":
         want = ""
         if s.gi < len(s.groups):
             want = " ".join(_label(s, i) for i in s.groups[s.gi][1])
@@ -301,7 +312,7 @@ def draw(scr, s: Session, br, title_key, zoom, g: PianoGeom, labels, now):
             a = curses.color_pair(P_WANT) | curses.A_BOLD
         elif i not in s.is_practised:
             a = curses.color_pair(P_ACCOMP)
-        elif i in s.judged:
+        elif i in s.judged and s.mode != "demo":
             a = curses.color_pair(P_WRONG if s.judged[i][0] == "miss" else P_HIT)
         else:
             a = curses.color_pair(P_LEFT if n.hand == "left" else P_RIGHT) | curses.A_BOLD
@@ -320,12 +331,23 @@ def draw(scr, s: Session, br, title_key, zoom, g: PianoGeom, labels, now):
         want_p = {s.tg[i].pitch for i in s.practised
                   if i not in s.judged and abs(sc.notes[i].start - s.pos) <= win}
     flash = {p for p, t in s.wrong_flash.items() if now - t < 0.4}
+    auto = {}  # demo: notes sounding now -> colour of their part
+    if s.mode == "demo":
+        for i, n in enumerate(sc.notes):
+            if n.start > s.pos:
+                break
+            if n.end > s.pos:
+                practised = i in s.is_practised
+                auto[s.tg[i].pitch if practised else n.pitch] = (
+                    (P_LEFT if n.hand == "left" else P_RIGHT) if practised else P_ACCOMP)
 
     def attr_for(p, black):
         if p in flash:
             return curses.color_pair(P_WRONG) | curses.A_BOLD
         if p in held:
             return curses.color_pair(1 + level(held[p], 127)) | curses.A_BOLD
+        if p in auto:
+            return curses.color_pair(auto[p]) | curses.A_BOLD
         if p in want_p:
             return curses.color_pair(P_WANT) | curses.A_BOLD
         return base_attr(p, black, labels)
@@ -351,7 +373,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog="magmidi.trainer", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("score", nargs="?", help=".mid file or exercise name/number in scores/")
-    ap.add_argument("--mode", choices=("practice", "game"), default="practice")
+    ap.add_argument("--mode", choices=("practice", "game", "demo"), default="practice")
     ap.add_argument("--hands", choices=("both", "right", "left"), default="both")
     ap.add_argument("--speed", type=float, default=1.0, help="tempo factor (default 1.0)")
     ap.add_argument("--zoom", type=float, default=3, help="screen rows per beat (default 3)")
@@ -429,6 +451,8 @@ def main(argv=None):
     st = s.stats()
     if s.mode == "practice":
         print(f"{sc.name}: practice, {s.gi}/{len(s.groups)} chords, {s.errors} wrong notes")
+    elif s.mode == "demo":
+        print(f"{sc.name}: demo")
     else:
         print(f"{sc.name}: game, hits {st['hits']} (perfect {st['perfect']}, good {st['good']}, ok {st['ok']}), "
               f"miss {st['miss']}, wrong {s.wrong}, accuracy {st['acc']:.0f}%, best combo {s.best_combo}")

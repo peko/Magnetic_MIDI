@@ -40,7 +40,7 @@ PYTHONPATH=tools .venv/bin/python -m magmidi.midi -v               # virtual MID
 PYTHONPATH=tools .venv/bin/python -m magmidi.midi --tui --to FLUID # keyboard + piano view, output straight to FluidSynth
 PYTHONPATH=tools .venv/bin/python -m magmidi.midi --scale minor    # in-key layout in another mode; --layout piano = old map
 PYTHONPATH=tools .venv/bin/python -m magmidi.trainer              # list the exercises in scores/
-PYTHONPATH=tools .venv/bin/python -m magmidi.trainer 05 --to FLUID [--mode game] [--hands right]  # play-along trainer
+PYTHONPATH=tools .venv/bin/python -m magmidi.trainer 05 --to FLUID [--mode game|demo] [--hands right]  # play-along trainer
 .venv/bin/python tools/scripts/make_exercises.py                  # regenerate scores/*.mid
 PYTHONPATH=tools .venv/bin/python -m magmidi.midi --light         # note keys lit for the session, restored on exit
 PYTHONPATH=tools python3 -m magmidi.devices.c80.keymap dump [--changed] [-o km.yaml]   # read-only
@@ -74,10 +74,12 @@ The score is fitted to the layout:
 - **Out-of-reach notes:** folded by octaves.
 - **Hands:** split by track names (`right`/`left`, RH/LH), else two tracks by pitch, else at C4.
 
-Modes (Tab switches while playing):
+Modes (Tab cycles them while playing):
 - **practice** waits at every chord until you play it, and counts wrong notes.
 - **game** keeps the tempo and judges each note: perfect ≤45 ms, good ≤90, ok ≤150, else miss. Keys that match
   nothing count as wrong.
+- **demo** (`--mode demo`) plays the whole score by itself, at the pitches the layout produces, and lights the
+  piano keys in hand colours, so you can watch which keys play what.
 
 Parts you don't practise (`--hands right|left`) play by themselves on MIDI channel 2.
 
