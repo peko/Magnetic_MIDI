@@ -14,7 +14,8 @@ Active development and testing are on the FUN68.
 ## Layout
 - `tools/magmidi/` — shared core: `midi.py` (MIDI bridge), `layouts.py` (in-key note layouts, see
   [docs/layouts.md](docs/layouts.md)), `tui.py` (bridge view: keyboard + piano), `viz.py` (travel TUI),
-  `velocity.py` (strike model), `colours.py` (`--light` colours), `paths.py`; device backends in `devices/<name>/` (`spec.py` = common interface, plus transport, stream,
+  `velocity.py` (strike model), `colours.py` (`--light` colours), `bridge.py` (travel → MIDI core),
+  `trainer.py` + `score.py` + `fit.py` (play-along trainer), `paths.py`; device backends in `devices/<name>/` (`spec.py` = common interface, plus transport, stream,
   layout, keymap, and `light.py` for the C80).
 - `tools/scripts/c80/` — C80 research scripts (probe, raw stream logger, evdev cross-check, plugin keymap generator,
   SDK harness).
@@ -25,7 +26,7 @@ Active development and testing are on the FUN68.
 
 ## Setup
 ```sh
-python -m venv .venv && .venv/bin/pip install hidapi python-rtmidi evdev pyyaml jsbeautifier
+python -m venv .venv && .venv/bin/pip install hidapi python-rtmidi evdev pyyaml jsbeautifier mido
 ```
 `viz.py` and the keymap tools need only the standard library. `/dev/hidraw*` must be readable and writable
 (udev: `KERNEL=="hidraw*", ATTRS{idVendor}=="2e3c|3151", TAG+="uaccess"`, or one rule per vendor), and grabbing
@@ -38,6 +39,9 @@ python3 tools/viz.py [--device fun68]                              # live TUI: t
 PYTHONPATH=tools .venv/bin/python -m magmidi.midi -v               # virtual MIDI port named after the device
 PYTHONPATH=tools .venv/bin/python -m magmidi.midi --tui --to FLUID # keyboard + piano view, output straight to FluidSynth
 PYTHONPATH=tools .venv/bin/python -m magmidi.midi --scale minor    # in-key layout in another mode; --layout piano = old map
+PYTHONPATH=tools .venv/bin/python -m magmidi.trainer              # list the exercises in scores/
+PYTHONPATH=tools .venv/bin/python -m magmidi.trainer 05 --to FLUID [--mode game] [--hands right]  # play-along trainer
+.venv/bin/python tools/scripts/make_exercises.py                  # regenerate scores/*.mid
 PYTHONPATH=tools .venv/bin/python -m magmidi.midi --light         # note keys lit for the session, restored on exit
 PYTHONPATH=tools python3 -m magmidi.devices.c80.keymap dump [--changed] [-o km.yaml]   # read-only
 PYTHONPATH=tools python3 -m magmidi.devices.c80.keymap set fn J F13   # remap one key (backup + verify)
@@ -58,6 +62,39 @@ Shift+arrows by an octave; `--light` colours notes by scale degree (tonic orange
 so they stay right after transposing), Space green, arrows/Shift/Alt amber. Connect the port with `aconnect` or pick it in your DAW. `--config file.yaml` overrides
 `velocity.DEFAULTS`, `midi.COMMON` and the device's `spec.DEFAULTS` (note map by layout key name; thresholds
 `vel_lo` / `vel_hi` / `release` as fractions of `full_travel`).
+
+## Trainer
+`magmidi.trainer` plays a MIDI score as falling notes onto a piano at the bottom of the terminal. Each note is
+labelled with the computer key that plays it in the thirds layout, and `♯` means "hold that hand's Alt".
+
+The score is fitted to the layout:
+- **Key:** taken from the key signature if there is one. Otherwise it is the diatonic collection that covers the
+  most notes, with major vs minor decided by the final bass note.
+- **Transposition:** chosen so the layout's tonic matches the key.
+- **Out-of-reach notes:** folded by octaves.
+- **Hands:** split by track names (`right`/`left`, RH/LH), else two tracks by pitch, else at C4.
+
+Modes (Tab switches while playing):
+- **practice** waits at every chord until you play it, and counts wrong notes.
+- **game** keeps the tempo and judges each note: perfect ≤45 ms, good ≤90, ok ≤150, else miss. Keys that match
+  nothing count as wrong.
+
+Parts you don't practise (`--hands right|left`) play by themselves on MIDI channel 2.
+
+Keys:
+- ←/→: previous/next bar
+- Shift+←: back to the start
+- ↑/↓: speed ±10%
+- Enter: pause
+- Backspace: restart and clear the score
+- Esc: quit
+
+`scores/` holds the exercises for the layout, written by `tools/scripts/make_exercises.py`:
+- home-row triads
+- the scale zigzag
+- broken chords
+- the I–IV⁶₄–V⁶–I cadence
+- Ode to Joy with left-hand triads
 
 ## Safety
 Each transport refuses commands that reset or brick the keyboard and, by default, allows only verified ones:

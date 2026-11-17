@@ -26,19 +26,12 @@ Config keys: see velocity.DEFAULTS, COMMON below and the device's spec.DEFAULTS 
 from __future__ import annotations
 
 import argparse
-import pathlib
 import signal
 import sys
 
 from . import devices, layouts
+from .bridge import Bridge, grab_keyboard, note_name, open_output, ungrab
 from .velocity import DEFAULTS as VEL_DEFAULTS
-from .velocity import KeyTracker, Thresholds
-
-_NOTE_NAMES = "C C# D D# E F F# G G# A A# B".split()
-
-
-def tui_note(n: int) -> str:
-    return f"{_NOTE_NAMES[n % 12]}{n // 12 - 1}"
 
 COMMON = {
     "channel": 0, "base_note": 48, "aftertouch": True,  # base_note 48 = C3
@@ -79,192 +72,73 @@ def main(argv=None):
     ap.add_argument("--scale", choices=list(layouts.SCALES), help="scale for in-key layouts (default: major)")
     ap.add_argument("--no-grab", action="store_true", help="don't grab evdev (keys will also type)")
     ap.add_argument("--port-name", help="virtual MIDI port name (default: device name)")
+    ap.add_argument("--to", metavar="NAME", help="connect straight to the MIDI input port containing NAME "
+                    "(e.g. FLUID) instead of opening a virtual port")
     ap.add_argument("--light", action="store_true", help="colour the note keys while running")
     ap.add_argument("--brightness", type=int, help="lighting brightness 0-4 with --light")
     ap.add_argument("--tui", action="store_true", help="curses view: keyboard + piano with sounding notes")
-    ap.add_argument("--to", metavar="NAME", help="connect straight to the MIDI input port containing NAME "
-                    "(e.g. FLUID) instead of opening a virtual port")
     ap.add_argument("-v", "--verbose", action="store_true")
     a = ap.parse_args(argv)
     signal.signal(signal.SIGTERM, signal.default_int_handler)  # run the cleanup in `finally` on kill
     dev = devices.get(a.device)
     cfg = load_config(dev.NAME, a.config, layout=a.layout, scale=a.scale)
-
-    import rtmidi
-
-    names = {k["name"]: k["index"] for k in dev.keys()}
-    unknown = [n for n in cfg["notes"] if n not in names]
-    if unknown:
-        sys.exit(f"unknown key names in notes map: {unknown}; valid: {sorted(names)}")
-    notes = {names[n]: cfg["base_note"] + off for n, off in cfg["notes"].items()}
-    keys = {idx: KeyTracker() for idx in notes}
-    last_at = {idx: -1 for idx in notes}
-    quit_idx = names.get(cfg["quit_key"])
-    key_names = {i: n for n, i in names.items()}
-    sus_idx = names.get(cfg.get("sustain_key") or "")
-    if cfg.get("sustain_key") and sus_idx is None:
-        sys.exit(f"unknown sustain_key {cfg['sustain_key']!r}")
-    if sus_idx in notes:
-        sys.exit(f"sustain_key {cfg['sustain_key']!r} is also mapped to a note")
-    xpose_keys = {names[n]: int(d) for n, d in (cfg.get("transpose_keys") or {}).items() if n in names}
-    shift_idx = {names[n] for n in cfg.get("shift_keys") or [] if n in names}
-    sharp_of = {names[n]: h for n, h in (cfg.get("sharp_keys") or {}).items() if n in names}  # key idx -> hand
-    hand_of = {names[n]: h for n, h in (cfg.get("hands") or {}).items()}  # note key idx -> hand
-    clash = (set(xpose_keys) | shift_idx | set(sharp_of)) & (set(notes) | {quit_idx, sus_idx})
-    if clash:
-        sys.exit(f"transpose/shift/sharp keys overlap notes/quit/sustain: {sorted(clash)}")
-    inverted = bool(cfg.get("sustain_inverted")) and sus_idx is not None
-    pressed: dict[int, bool] = {}  # control keys with hysteresis (press >= release, let go < vel_lo)
-    sustain = None
-    transpose = 0
-    playing: dict[int, int] = {}  # key index -> note actually sounding (survives transposition)
-    depth: dict[int, int] = {}  # key index -> last raw travel (for --tui)
-    vel: dict[int, int] = {}  # key index -> last strike velocity (for --tui)
-    ringing: dict[int, float] = {}  # note -> release time, while held by the sustain pedal (for --tui)
-    ui = None
-    xrange = int(cfg.get("transpose_range", 48))
-    port = a.port_name or dev.PORT_NAME
-
-    out = rtmidi.MidiOut()
-    if a.to:
-        match = [i for i, p in enumerate(out.get_ports()) if a.to.lower() in p.lower()]
-        if not match:
-            sys.exit(f"no MIDI input port matching {a.to!r}; ports: {out.get_ports()}")
-        port = out.get_ports()[match[0]]
-        out.open_port(match[0])
-    else:
-        out.open_virtual_port(port)
-    ch = cfg["channel"] & 0x0F
-    th = Thresholds(cfg)
-    fast, slow = cfg["fast_ms"], cfg["slow_ms"]
-
-    grabbed = []
-    if not a.no_grab:
-        import evdev
-
-        for p in sorted(pathlib.Path("/dev/input/by-id").glob(dev.EVDEV_GLOB)):
-            d = evdev.InputDevice(str(p))
-            d.grab()
-            grabbed.append(d)
+    out, port = open_output(a.port_name or dev.PORT_NAME, a.to)
+    br = Bridge(dev, cfg, out)
+    grabbed = [] if a.no_grab else grab_keyboard(dev)
 
     print(f"{dev.TITLE}: MIDI port '{port}' open; layout {cfg['layout']}"
           + (f" ({cfg['scale']})" if cfg["layout"] != "piano" else "")
-          + f", {len(notes)} keys mapped; grabbed {len(grabbed)} evdev nodes. "
-          f"Press {cfg['quit_key']} to quit."
-          + (f" {cfg['sustain_key']} = sustain pedal{' (inverted)' if inverted else ''}." if sus_idx is not None else "")
-          + (" Arrows: transpose ±1, Shift+arrows: ±12." if xpose_keys else "")
-          + (" LAlt/RAlt: +1 semitone for that hand." if sharp_of and hand_of else ""), flush=True)
+          + f", {len(br.notes)} keys mapped; grabbed {len(grabbed)} evdev nodes. Press {cfg['quit_key']} to quit."
+          + (f" {cfg['sustain_key']} = sustain pedal{' (inverted)' if br.inverted else ''}."
+             if br.sus_idx is not None else "")
+          + (" Arrows: transpose ±1, Shift+arrows: ±12." if br.xpose_keys else "")
+          + (" LAlt/RAlt: +1 semitone for that hand." if br.sharp_of and br.hand_of else ""), flush=True)
+    ui = None
 
-    def say(msg, always=False):
-        if ui is not None:
-            ui.log(msg)
-        elif always or a.verbose:
-            print(msg, flush=True)
-
-    def note_for(idx):  # the note this key plays now (transposition + held sharp modifier of its hand)
-        n = notes[idx] + transpose
-        if any(pressed.get(i) for i, h in sharp_of.items() if h == hand_of.get(idx)):
-            n += 1
-        return n
-
-    def set_sustain(on):
-        nonlocal sustain
-        if on != sustain:
-            sustain = on
-            out.send_message([0xB0 | ch, 64, 127 if on else 0])
-            if not on:
-                ringing.clear()
-            say(f"sustain {'on' if on else 'off'}")
-
-    def control(idx, v):  # -> True on the press edge
-        was = pressed.get(idx, False)
-        now = v >= th.lo if was else v >= th.rel
-        pressed[idx] = now
-        return now and not was
+    def report(evs):  # -> True to quit
+        for ev in evs:
+            kind = ev[0]
+            if kind == "quit":
+                return True
+            if ui is not None:
+                if kind == "on":
+                    ui.log(f"{br.key_names[ev[1]]:>3} → {note_name(ev[2]):<4} v{ev[3]:<3} {ev[4]:5.1f}ms")
+                elif kind == "transpose":
+                    ui.log(f"transpose {ev[1]:+d}")
+                elif kind == "sustain":
+                    ui.log(f"sustain {'on' if ev[1] else 'off'}")
+                elif kind == "full":
+                    ui.log(f"full_travel -> {ev[1]}")
+            elif kind == "on":
+                if a.verbose:
+                    print(f"on  {ev[2]:3d} vel {ev[3]:3d} dt {ev[4]:6.1f}ms", flush=True)
+            elif kind == "off":
+                if a.verbose:
+                    print(f"off {ev[2]:3d}", flush=True)
+            elif kind == "transpose":
+                print(f"transpose {ev[1]:+d}", flush=True)
+            elif a.verbose:
+                print(f"{kind} {'on' if ev[1] is True else 'off' if ev[1] is False else ev[1]}", flush=True)
+        return False
 
     def play(st):
-        nonlocal transpose
         for t, idx, v in (st.events(timeout=0.02) if ui else st.events()):
             if ui:
-                ui.tick(t, depth=depth, playing=playing, vel=vel, ringing=ringing, note_for=note_for,
-                        base_notes=notes, transpose=transpose, sustain=sustain)
-            if idx is None:
-                continue
-            depth[idx] = v
-            if th.grow(v):
-                say(f"full_travel -> {th.full}")
-            if idx == quit_idx:
-                if v >= th.hi:
-                    return
-                continue
-            if idx == sus_idx:
-                control(idx, v)
-                set_sustain(pressed[idx] != inverted)
-                continue
-            if idx in shift_idx or idx in sharp_of:
-                control(idx, v)
-                continue
-            if idx in xpose_keys:
-                if control(idx, v):
-                    step = xpose_keys[idx] * (12 if any(pressed.get(i) for i in shift_idx) else 1)
-                    transpose = max(-xrange, min(xrange, transpose + step))
-                    say(f"transpose {transpose:+d}", always=True)
-                continue
-            k = keys.get(idx)
-            if k is None:
-                continue
-            ev = k.update(t, v, th, fast, slow)
-            if ev and ev[0] == "on":
-                note = note_for(idx)
-                if not 0 <= note <= 127:
-                    continue
-                playing[idx] = note
-                vel[idx] = ev[1]
-                ringing.pop(note, None)
-                out.send_message([0x90 | ch, note, ev[1]])
-                last_at[idx] = -1
-                if ui:
-                    ui.log(f"{key_names[idx]:>3} → {tui_note(note):<4} v{ev[1]:<3} {ev[2]:5.1f}ms")
-                elif a.verbose:
-                    print(f"on  {note:3d} vel {ev[1]:3d} dt {ev[2]:6.1f}ms", flush=True)
-            elif ev:
-                note = playing.pop(idx, None)
-                if note is None:
-                    continue
-                out.send_message([0x80 | ch, note, 64])
-                if sustain:
-                    ringing[note] = t
-                if a.verbose and not ui:
-                    print(f"off {note:3d}", flush=True)
-            note = playing.get(idx)
-            if note is not None and k.on and cfg["aftertouch"]:
-                at = max(0, min(127, round(127 * (v - th.hi) / max(1, th.full - th.hi))))
-                if at != last_at[idx]:
-                    out.send_message([0xA0 | ch, note, at])
-                    last_at[idx] = at
+                ui.tick(t, br)
+            if idx is not None and report(br.handle(t, idx, v)):
+                return
 
     try:
-        indices = list(notes) + [i for i in (quit_idx, sus_idx) if i is not None] + list(xpose_keys) + list(shift_idx) + list(sharp_of)
-        if sus_idx is not None:
-            set_sustain(inverted)
-        with dev.stream(indices, cfg, a.light, a.brightness) as st:
+        report(br.start())
+        with dev.stream(br.indices(), cfg, a.light, a.brightness) as st:
             if a.tui:
                 import curses
 
-                from .tui import BridgeTUI
-
-                roles = {i: "note" for i in notes}
-                roles.update({i: ("+1" if d > 0 else "-1") for i, d in xpose_keys.items()})
-                roles.update({i: "×12" for i in shift_idx})
-                roles.update({i: f"♯ {h[0].upper()}" for i, h in sharp_of.items()})
-                if sus_idx is not None:
-                    roles[sus_idx] = "pedal (inverted)" if inverted else "pedal"
-                if quit_idx is not None:
-                    roles[quit_idx] = "quit"
+                from .tui import BridgeTUI, roles_for
 
                 def run_tui(scr):
                     nonlocal ui
-                    ui = BridgeTUI(scr, dev, cfg, roles, th)
+                    ui = BridgeTUI(scr, dev, cfg, roles_for(br), br.th)
                     try:
                         play(st)
                     finally:
@@ -276,15 +150,8 @@ def main(argv=None):
     except KeyboardInterrupt:
         pass
     finally:
-        for note in playing.values():
-            out.send_message([0x80 | ch, note, 0])
-        out.send_message([0xB0 | ch, 64, 0])  # sustain up
-        out.send_message([0xB0 | ch, 123, 0])  # all notes off
-        for d in grabbed:
-            try:
-                d.ungrab()
-            except OSError:
-                pass
+        br.all_off()
+        ungrab(grabbed)
         out.close_port()
         print("bye")
 
