@@ -38,10 +38,11 @@ the keyboard needs the `input` group.
 dev_id from the read-only `GET_USB_VERSION 0x8F`; the FUN68 keymap/light tools only ever open dev_id 2811, and
 `--light` is refused on the Mars68 (its LED writes are unverified).
 ```sh
-python3 tools/viz.py [--device fun68]                              # live TUI: travel per key + strike velocity
+python3 tools/viz.py [--device fun68]                              # live TUI: travel per key + strike velocity (Esc quits)
 PYTHONPATH=tools .venv/bin/python -m magmidi.midi -v               # virtual MIDI port named after the device
 PYTHONPATH=tools .venv/bin/python -m magmidi.midi --tui --to FLUID # keyboard + piano view, output straight to FluidSynth
 PYTHONPATH=tools .venv/bin/python -m magmidi.midi --scale minor    # in-key layout in another mode; --layout piano = old map
+PYTHONPATH=tools .venv/bin/python -m magmidi.midi --to FLUID --hand-channels 1,3 --pedal-hands left  # left hand ch 1, right ch 3
 PYTHONPATH=tools .venv/bin/python -m magmidi.trainer              # list the exercises in scores/
 PYTHONPATH=tools .venv/bin/python -m magmidi.trainer 05 --to FLUID [--mode game|demo] [--hands right]  # play-along trainer
 .venv/bin/python tools/scripts/make_exercises.py                  # regenerate scores/*.mid

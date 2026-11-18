@@ -60,7 +60,18 @@ def load_config(device: str, path: str | None = None, **overrides) -> dict:
 
         cfg.update(yaml.safe_load(open(path)) or {})
     pedal = overrides.pop("pedal", None)
+    hand_channels = overrides.pop("hand_channels", None)  # "LEFT,RIGHT", MIDI channels 1-16
+    pedal_hands = overrides.pop("pedal_hands", None)
     cfg.update({k: v for k, v in overrides.items() if v is not None})
+    if hand_channels:
+        try:
+            left, right = (int(x) for x in str(hand_channels).split(","))
+            assert 1 <= left <= 16 and 1 <= right <= 16
+        except (ValueError, AssertionError):
+            sys.exit(f"--hand-channels wants LEFT,RIGHT MIDI channels 1-16, got {hand_channels!r}")
+        cfg["hand_channels"] = {"left": left - 1, "right": right - 1}
+    if pedal_hands:
+        cfg["pedal_hands"] = ["left", "right"] if pedal_hands == "both" else [pedal_hands]
     if pedal == "off":
         cfg["sustain_key"] = None
     elif pedal in ("normal", "inverted"):
@@ -82,6 +93,10 @@ def main(argv=None):
     ap.add_argument("--scale", choices=list(layouts.SCALES), help="scale for in-key layouts (default: major)")
     ap.add_argument("--no-grab", action="store_true", help="don't grab evdev (keys will also type)")
     ap.add_argument("--pedal", choices=PEDALS, help=PEDAL_HELP)
+    ap.add_argument("--hand-channels", metavar="L,R",
+                    help="send the left / right hand on these MIDI channels (1-16), e.g. 1,3 for piano + violin")
+    ap.add_argument("--pedal-hands", choices=("both", "left", "right"),
+                    help="with --hand-channels: which hands the sustain pedal affects (default both)")
     ap.add_argument("--port-name", help="virtual MIDI port name (default: device name)")
     ap.add_argument("--to", metavar="NAME", help="connect straight to the MIDI input port containing NAME "
                     "(e.g. FLUID) instead of opening a virtual port")
@@ -92,7 +107,8 @@ def main(argv=None):
     a = ap.parse_args(argv)
     signal.signal(signal.SIGTERM, signal.default_int_handler)  # run the cleanup in `finally` on kill
     dev = devices.get(a.device)
-    cfg = load_config(dev.NAME, a.config, layout=a.layout, scale=a.scale, pedal=a.pedal)
+    cfg = load_config(dev.NAME, a.config, layout=a.layout, scale=a.scale, pedal=a.pedal,
+                      hand_channels=a.hand_channels, pedal_hands=a.pedal_hands)
     out, port = open_output(a.port_name or dev.PORT_NAME, a.to)
     br = Bridge(dev, cfg, out)
     grabbed = [] if a.no_grab else grab_keyboard(dev)

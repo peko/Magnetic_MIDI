@@ -1,6 +1,6 @@
 """Live terminal visualisation of key travel and strike velocity (CIDOO C80, MonsGeek FUN68).
 
-    python3 tools/viz.py [--device auto|c80|fun68]          (Ctrl+C to quit)
+    python3 tools/viz.py [--device auto|c80|fun68|mars68]   (Esc or Ctrl+C to quit)
 
 Each key is drawn at its physical position. Its fill colour and the bar under its name show the current
 travel relative to full travel. The number shows the velocity (1–127) of that key's last strike, using the
@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import collections
 import curses
+import os
 import time
 
 from . import devices
@@ -54,9 +55,13 @@ def run(scr, dev):
 
     with dev.stream(list(states)) as st:
         last_draw = 0.0
+        quit_idx = {k["name"]: k["index"] for k in keys}.get(cfg["quit_key"])
         for t, idx, v in st.events(timeout=0.01):
-            while scr.getch() != -1:  # swallow typed input
-                pass
+            while (ch := scr.getch()) != -1:  # typed input (the keyboard is not grabbed): Esc / q quit
+                if ch in (27, ord("q")):
+                    return
+            if idx is not None and idx == quit_idx and v >= th.hi:  # Esc pressed on the magnetic keyboard
+                return
             if idx is not None:
                 stats["events"] += 1
                 if stats["last_t"] is not None and v:
@@ -95,7 +100,7 @@ def draw(scr, dev, keys, states, vel, log, th, cfg, stats, n_other, now):
     elapsed = max(now - stats["t_start"], 1e-3)
     gap = "-" if stats["min_gap"] is None else f"{stats['min_gap']:.1f}ms"
     title = (f" {dev.TITLE} live travel | events {stats['events']} ({stats['events'] / elapsed:.0f}/s) "
-             f"| max raw {stats['max_raw']} | min gap {gap} | full={mx} | Ctrl+C quits ")
+             f"| max raw {stats['max_raw']} | min gap {gap} | full={mx} | Esc quits ")
     scr.addnstr(0, 0, title, w - 1, curses.A_BOLD)
     if stats["events"] == 0:
         scr.addnstr(1, 0, " waiting for travel reports — press a key", w - 1, curses.A_DIM)
@@ -143,6 +148,7 @@ def main(argv=None):
     a = ap.parse_args(argv)
     dev = devices.get(a.device)
     signal.signal(signal.SIGTERM, signal.default_int_handler)
+    os.environ.setdefault("ESCDELAY", "25")  # curses waits 1 s after Esc by default
     try:
         curses.wrapper(run, dev)
     except KeyboardInterrupt:

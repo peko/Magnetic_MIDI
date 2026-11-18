@@ -48,6 +48,12 @@ class Bridge:
         self.inverted = bool(cfg.get("sustain_inverted")) and self.sus_idx is not None
         self.th = Thresholds(cfg)
         self.ch = cfg["channel"] & 0x0F
+        # optional per-hand channels (e.g. left piano, right violin) and which hands the sustain pedal affects
+        hc = cfg.get("hand_channels") or {}
+        self.hand_ch = {h: int(hc.get(h, self.ch)) & 0x0F for h in ("left", "right")}
+        pedal_hands = cfg.get("pedal_hands") or ["left", "right"]
+        self.pedal_chs = sorted({self.hand_ch[h] for h in pedal_hands} if hc else {self.ch})
+        self.all_chs = sorted(set(self.hand_ch.values()) | {self.ch})
         self.xrange = int(cfg.get("transpose_range", 48))
         self.transpose = transpose
         self.sustain = None
@@ -69,6 +75,10 @@ class Bridge:
     def sharp_held(self, hand: str | None) -> bool:
         return any(self.pressed.get(i) for i, h in self.sharp_of.items() if h == hand)
 
+    def ch_for(self, idx: int) -> int:
+        """MIDI channel of a note key: its hand's channel when hands are split, else the main channel."""
+        return self.hand_ch.get(self.hand_of.get(idx), self.ch)
+
     def note_for(self, idx: int) -> int:
         """The note this key plays now (transposition + held sharp modifier of its hand)."""
         return self.notes[idx] + self.transpose + (1 if self.sharp_held(self.hand_of.get(idx)) else 0)
@@ -81,17 +91,19 @@ class Bridge:
         self.transpose = max(-self.xrange, min(self.xrange, n))
 
     def all_off(self):
-        for note in self.playing.values():
-            self.out.send_message([0x80 | self.ch, note, 0])
+        for idx, note in self.playing.items():
+            self.out.send_message([0x80 | self.ch_for(idx), note, 0])
         self.playing.clear()
-        self.out.send_message([0xB0 | self.ch, 64, 0])  # sustain up
-        self.out.send_message([0xB0 | self.ch, 123, 0])  # all notes off
+        for c in self.all_chs:
+            self.out.send_message([0xB0 | c, 64, 0])  # sustain up
+            self.out.send_message([0xB0 | c, 123, 0])  # all notes off
 
     def _set_sustain(self, on) -> list:
         if on == self.sustain:
             return []
         self.sustain = on
-        self.out.send_message([0xB0 | self.ch, 64, 127 if on else 0])
+        for c in self.pedal_chs:
+            self.out.send_message([0xB0 | c, 64, 127 if on else 0])
         if not on:
             self.ringing.clear()
         return [("sustain", on)]
@@ -132,13 +144,13 @@ class Bridge:
                 self.playing[idx] = note
                 self.vel[idx] = ev[1]
                 self.ringing.pop(note, None)
-                self.out.send_message([0x90 | self.ch, note, ev[1]])
+                self.out.send_message([0x90 | self.ch_for(idx), note, ev[1]])
                 self._last_at[idx] = -1
                 evs.append(("on", idx, note, ev[1], ev[2]))
         elif ev:
             note = self.playing.pop(idx, None)
             if note is not None:
-                self.out.send_message([0x80 | self.ch, note, 64])
+                self.out.send_message([0x80 | self.ch_for(idx), note, 64])
                 if self.sustain:
                     self.ringing[note] = t
                 evs.append(("off", idx, note))
@@ -147,7 +159,7 @@ class Bridge:
             th = self.th
             at = max(0, min(127, round(127 * (v - th.hi) / max(1, th.full - th.hi))))
             if at != self._last_at.get(idx):
-                self.out.send_message([0xA0 | self.ch, note, at])
+                self.out.send_message([0xA0 | self.ch_for(idx), note, at])
                 self._last_at[idx] = at
         return evs
 
