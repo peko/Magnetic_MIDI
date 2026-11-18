@@ -7,7 +7,7 @@ keyboard into a velocity-sensitive MIDI controller.
 |---|---|---|---|---|
 | CIDOO C80 | `2e3c:c368`, fw `QK75EHEARGB V3.22.00` | illumipc white-label (usage page 0xFF1B) | cmd `0x21` trigger test, 0.01 mm, ~1 ms | [docs/c80](docs/c80/) |
 | MonsGeek FUN68 HE | `3151:5030`, dev_id 2811, fw 0x0504 | RongYuan RY5088 (usage page 0xFFFF, feature reports) | cmd `0x1B` depth report, 0–720 raw, ~1.4 ms | [docs/fun68](docs/fun68/) |
-| CAROTMAS Mars68 PRO | `3151:5030`, dev_id 2431, fw 0x0306 | same RY5088 protocol as the FUN68 | cmd `0x1B`, 0–350 raw, ~0.13 ms | `devices/mars68/spec.py` |
+| CAROTMAS Mars68 PRO | `3151:5030`, dev_id 2431, fw 0x0306 | same RY5088 protocol as the FUN68 | cmd `0x1B`, 0–350 raw, ~0.13 ms | [docs/mars68](docs/mars68/) |
 
 The C80 hardware is no longer available (2026-11); its backend is kept but has not been re-tested since the merge.
 Active development and testing are on the FUN68.

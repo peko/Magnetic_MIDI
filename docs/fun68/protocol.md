@@ -57,6 +57,6 @@ Measured 2026-11-14 (`tools/scripts/depth_probe.py`, capture `captures/fun68/dep
 - Fn Win: 41 entries, Fn Mac: 40 entries (see `magmidi.devices.fun68.keymap dump`). Unlike the C80, built-in Fn functions are a
   readable table.
 - Entry `[type b1 b2 b3]`: 00 key/chord (up to 3 HID usages), 01 mouse, 03 consumer (b2|b3<<8), 08 profile,
-  09 macro, 0A special fn (01 Fn, 02 Game Mode, 03 Win Lock, 05 OS, 08 BT pair, 0B NKRO, 0C Fn Lock, 17 RCtrl mod),
+  09 macro, 0A special fn (01 Fn, 02 Game Mode, 03 Win Lock, 05 OS, 08 BT pair, 0B NKRO, 0C backlight off per the Mars68 manual (monsgeek: Fn Lock), 17 RCtrl mod),
   0D LED control, 0E connection (BT1-3 / 2.4G / USB), 12 extended (seen `12 00 E3 2C` = Cmd+Space), 15 gamepad.
   `00000000` = disabled in layer 0, transparent in layers 1–3 and Fn.

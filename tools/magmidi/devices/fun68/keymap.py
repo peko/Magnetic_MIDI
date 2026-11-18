@@ -1,6 +1,8 @@
 """Read the FUN68 keymap: keymatrix layers 0–3 and the Fn tables (Win / Mac) of one profile. Read-only.
 
-    PYTHONPATH=tools python3 -m magmidi.devices.fun68.keymap dump [--profile N] [--changed] [--raw] [-o keymap.yaml]
+    PYTHONPATH=tools python3 -m magmidi.devices.fun68.keymap dump [--model fun68|mars68] [--profile N] [--changed]
+                                                                  [--raw] [-o keymap.yaml]
+The Mars68 PRO (dev_id 2431) speaks the same protocol and reads with the FUN68 key names.
 
 Protocol (monsgeek-akko-linux docs/PROTOCOL.md, monsgeek-transport/src/command.rs):
     GET_KEYMATRIX [8A profile FF page layer]   8 pages x 64 B = 128 entries x 4 B, index = col*6 + row
@@ -22,10 +24,11 @@ import sys
 import time
 
 from .layout import BY_INDEX, STOCK_HID
-from .transport import DEV_FUN68, FUN68, hexdump, packet
+from .transport import DEV_FUN68, DEV_MARS68, FUN68, hexdump, packet
 
 from ...paths import ROOT, captures
 PAGES = 8
+MODELS = {"fun68": DEV_FUN68, "mars68": DEV_MARS68}
 FN_INDEX = 65
 ENTRIES = PAGES * 64 // 4
 
@@ -45,12 +48,15 @@ CONSUMER = {0xB5: "Next Track", 0xB6: "Previous Track", 0xB7: "Stop", 0xCD: "Pla
             0xE9: "Volume Up", 0xEA: "Volume Down", 0x6F: "Brightness Up", 0x70: "Brightness Down",
             0x183: "Media Player", 0x18A: "Mail", 0x192: "Calculator", 0x194: "My Computer", 0x221: "Search",
             0x223: "Browser Home"}
+# Labels follow monsgeek-akko-linux, corrected where the Mars68 PRO printed manual (docs/mars68) says otherwise:
+# 0A 0C = backlight off (monsgeek: Fn Lock), 0D 05 = single-colour cycle (monsgeek: direction),
+# 0D 03 01/02 = effect slower/faster (the stored speed value is inverted).
 SPECIAL_FN = {1: "Fn", 2: "Game Mode", 3: "Win Lock", 8: "BT Pairing", 9: "Fn Toggle", 0x0A: "WASD Swap",
-              0x0B: "NKRO Toggle", 0x0C: "Fn Lock", 0x0D: "Report Mode", 0x0E: "Knob Mode Toggle",
+              0x0B: "NKRO Toggle", 0x0C: "Backlight Off", 0x0D: "Report Mode", 0x0E: "Knob Mode Toggle",
               0x17: "RCtrl Modifier"}
-LED = {(2, 1, 0): "LED Brightness Up", (2, 2, 0): "LED Brightness Down", (3, 1, 0): "LED Speed Up",
-       (3, 2, 0): "LED Speed Down"}
-LED_WIDE = {1: "LED Mode Cycle", 5: "LED Direction", 6: "LED Layer Select"}
+LED = {(2, 1, 0): "LED Brightness Up", (2, 2, 0): "LED Brightness Down", (3, 1, 0): "LED Speed Slower",
+       (3, 2, 0): "LED Speed Faster"}
+LED_WIDE = {1: "LED Mode Cycle", 5: "LED Colour Cycle", 6: "LED Layer Select"}
 
 
 def hid_name(u: int) -> str:
@@ -60,6 +66,8 @@ def hid_name(u: int) -> str:
 def describe(e: bytes) -> str:
     t, b1, b2, b3 = e
     if t == 0:
+        if (b1, b2, b3) == (0, 1, 0):  # HID 0x01 is no key; on the Mars68 Fn+RAlt opens the media layer
+            return "Fn layer 2 (Fn+RAlt+key)"
         keys = [hid_name(u) for u in (b1, b2, b3) if u]
         return "+".join(keys) if keys else "(none)"
     if t == 1:
@@ -129,7 +137,7 @@ def changed(table: str, idx: int, e: bytes) -> bool:
 
 def dump(args):
     result, raw = {}, []
-    with FUN68(dev_id=DEV_FUN68) as kb:
+    with FUN68(dev_id=MODELS[args.model]) as kb:
         cur = kb.query(packet(0x84))
         profile = args.profile if args.profile is not None else (cur[1] if cur else 0)
         for name, make in tables(profile):
@@ -144,7 +152,7 @@ def dump(args):
             result[name] = rows
 
     ts = time.strftime("%Y%m%d_%H%M%S")
-    cap = captures("fun68") / f"keymap_{ts}.txt"
+    cap = captures(args.model) / f"keymap_{ts}.txt"
     cap.write_text("\n".join(raw) + "\n")
 
     print(f"profile {profile}" + (" (active)" if cur and cur[1] == profile else ""))
@@ -164,7 +172,7 @@ def dump(args):
 
     if args.output:
         with open(args.output, "w") as f:
-            f.write(f"# MonsGeek FUN68 keymap dump {ts}, profile {profile}; raw = type b1 b2 b3 (hex)\n")
+            f.write(f"# {args.model} keymap dump {ts}, profile {profile}; raw = type b1 b2 b3 (hex)\n")
             for name, rows in result.items():
                 f.write(f"{name}:\n")
                 for r in rows:
@@ -181,6 +189,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog="magmidi.devices.fun68.keymap")
     sub = ap.add_subparsers(dest="cmd", required=True)
     d = sub.add_parser("dump", help="read layers 0-3 and Fn tables (read-only)")
+    d.add_argument("--model", choices=list(MODELS), default="fun68", help="RY5088 model to read (default fun68)")
     d.add_argument("--profile", type=int, choices=range(4), help="default: active profile")
     d.add_argument("--changed", action="store_true", help="only entries that differ from stock / are non-empty")
     d.add_argument("--all", action="store_true", help="also list empty (transparent) entries of layers 1-3 / Fn")
