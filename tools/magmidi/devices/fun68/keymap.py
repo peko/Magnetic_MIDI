@@ -22,7 +22,7 @@ import sys
 import time
 
 from .layout import BY_INDEX, STOCK_HID
-from .transport import FUN68, hexdump, packet
+from .transport import DEV_FUN68, FUN68, hexdump, packet
 
 from ...paths import ROOT, captures
 PAGES = 8
@@ -129,7 +129,7 @@ def changed(table: str, idx: int, e: bytes) -> bool:
 
 def dump(args):
     result, raw = {}, []
-    with FUN68() as kb:
+    with FUN68(dev_id=DEV_FUN68) as kb:
         cur = kb.query(packet(0x84))
         profile = args.profile if args.profile is not None else (cur[1] if cur else 0)
         for name, make in tables(profile):

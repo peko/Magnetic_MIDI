@@ -2,3 +2,6 @@
 __pycache__/
 .claude/scheduled_tasks.lock
 plugin/*/target/
+# SoundFonts are large third-party binaries; keep them local
+*.sf2
+*.sf3

@@ -7,6 +7,7 @@ keyboard into a velocity-sensitive MIDI controller.
 |---|---|---|---|---|
 | CIDOO C80 | `2e3c:c368`, fw `QK75EHEARGB V3.22.00` | illumipc white-label (usage page 0xFF1B) | cmd `0x21` trigger test, 0.01 mm, ~1 ms | [docs/c80](docs/c80/) |
 | MonsGeek FUN68 HE | `3151:5030`, dev_id 2811, fw 0x0504 | RongYuan RY5088 (usage page 0xFFFF, feature reports) | cmd `0x1B` depth report, 0–720 raw, ~1.4 ms | [docs/fun68](docs/fun68/) |
+| CAROTMAS Mars68 PRO | `3151:5030`, dev_id 2431, fw 0x0306 | same RY5088 protocol as the FUN68 | cmd `0x1B`, 0–350 raw, ~0.13 ms | `devices/mars68/spec.py` |
 
 The C80 hardware is no longer available (2026-11); its backend is kept but has not been re-tested since the merge.
 Active development and testing are on the FUN68.
@@ -33,7 +34,9 @@ python -m venv .venv && .venv/bin/pip install hidapi python-rtmidi evdev pyyaml 
 the keyboard needs the `input` group.
 
 ## Usage
-`--device` defaults to `auto` (the first connected keyboard); pass `c80` or `fun68` to choose.
+`--device` defaults to `auto` (the first connected keyboard); pass `c80`, `fun68` or `mars68` to choose. The FUN68 and the Mars68 share a USB id and are told apart by the
+dev_id from the read-only `GET_USB_VERSION 0x8F`; the FUN68 keymap/light tools only ever open dev_id 2811, and
+`--light` is refused on the Mars68 (its LED writes are unverified).
 ```sh
 python3 tools/viz.py [--device fun68]                              # live TUI: travel per key + strike velocity
 PYTHONPATH=tools .venv/bin/python -m magmidi.midi -v               # virtual MIDI port named after the device
@@ -56,7 +59,8 @@ python3 tools/scripts/depth_probe.py [--device fun68] 40          # record trave
 Esc on the keyboard quits. The default note layout is **thirds**: in-key, the tonic chord under the resting fingers
 (left S D F, right J K L), adjacent home-row keys a third apart (3 adjacent keys = a triad), steps on the diagonals
 to the bottom row, upper row = +1 octave, left hand an octave below the right; LAlt/RAlt held raise that hand by a
-semitone. Theory and chord charts: [docs/layouts.md](docs/layouts.md). Space is the sustain pedal, inverted by default (sustain on while Space is up, pressing
+semitone. Theory and chord charts: [docs/layouts.md](docs/layouts.md). Space is the sustain pedal (`--pedal inverted|normal|off`; use `off` for bowed or
+looped sounds such as a violin), inverted by default (sustain on while Space is up, pressing
 it damps; `sustain_inverted: false` for a normal pedal). Arrows transpose by a semitone (Up/Right +, Down/Left −),
 Shift+arrows by an octave; `--light` colours notes by scale degree (tonic orange, 3rd/5th white, other steps blue,
 so they stay right after transposing), Space green, arrows/Shift/Alt amber. Connect the port with `aconnect` or pick it in your DAW. `--config file.yaml` overrides

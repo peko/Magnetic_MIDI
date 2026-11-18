@@ -5,9 +5,10 @@ import contextlib
 
 from .layout import KEYS
 from .stream import DepthStream
-from .transport import FUN68, find_hidraw
+from .transport import DEV_FUN68, FUN68, find_board
 
 NAME = "fun68"
+DEV_ID = DEV_FUN68
 TITLE = "MonsGeek FUN68"
 PORT_NAME = "MonsGeek FUN68"
 EVDEV_GLOB = "usb-*Monsgeek*event*"
@@ -29,7 +30,7 @@ DEFAULTS = {
 
 def present() -> bool:
     try:
-        find_hidraw(2)
+        find_board(DEV_ID)
         return True
     except FileNotFoundError:
         return False
@@ -42,7 +43,7 @@ def keys() -> list[dict]:
 @contextlib.contextmanager
 def stream(indices, cfg=None, light=False, brightness=None):
     with contextlib.ExitStack() as stack:
-        kb = stack.enter_context(FUN68())
+        kb = stack.enter_context(FUN68(dev_id=DEV_ID))
         if light:
             from .light import NoteLighting, note_colours
 

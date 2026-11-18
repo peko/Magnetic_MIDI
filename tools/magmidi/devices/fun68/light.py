@@ -21,7 +21,7 @@ import time
 from ...colours import key_colours
 from ...paths import ROOT, captures
 from .layout import BY_INDEX, BY_NAME
-from .transport import FUN68, packet
+from .transport import DEV_FUN68, FUN68, packet
 
 N_KEYS = 126
 USERPIC_BYTES = N_KEYS * 3
@@ -130,7 +130,7 @@ def restore(kb: FUN68, backup, verbose=True):
 
 
 def cmd_show(args):
-    with FUN68() as kb:
+    with FUN68(dev_id=DEV_FUN68) as kb:
         print("LED:", describe(get_params(kb)))
         r = kb.query(packet(0x88))
         if r:
@@ -144,13 +144,13 @@ def cmd_show(args):
 def cmd_notes(args):
     from ...midi import load_config
 
-    with FUN68() as kb:
+    with FUN68(dev_id=DEV_FUN68) as kb:
         NoteLighting(kb, note_colours(load_config("fun68", args.config)), args.brightness).__enter__()
         print("note lighting stays on; undo with: python -m magmidi.devices.fun68.light restore <backup file above>")
 
 
 def cmd_restore(args):
-    with FUN68() as kb:
+    with FUN68(dev_id=DEV_FUN68) as kb:
         restore(kb, json.load(open(args.backup)))
 
 

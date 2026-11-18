@@ -19,8 +19,10 @@ import os
 import select
 import time
 
-VID, PID = 0x3151, 0x5030
+VID, PID = 0x3151, 0x5030  # shared by many RY5088 models; the model is the dev_id from GET_USB_VERSION 0x8F
 REPORT_LEN = 64
+DEV_FUN68 = 2811  # MonsGeek FUN68 HE (ry5088_akko_fun68_8k_8k_3m)
+DEV_MARS68 = 2431  # CAROTMAS Mars68 PRO (not in the monsgeek-akko-linux device DB)
 
 # Opcodes that are known-safe. Anything else is refused unless allow_unsafe=True.
 # Explicitly dangerous: 0x01 SET_RESET (factory reset), 0x7F ENTER_BOOTLOADER (erases config),
@@ -89,9 +91,56 @@ def packet(cmd: int, *args: int, payload: bytes | list[int] = b"") -> bytes:
     return bytes(p)
 
 
+def boards() -> list[dict]:
+    """Connected RY5088 keyboards: [{"usb", "config", "events", "dev_id", "fw"}], grouped by USB device."""
+    found: dict[str, dict] = {}
+    for node in sorted(glob.glob("/sys/class/hidraw/hidraw*")):
+        try:
+            uevent = open(f"{node}/device/uevent").read()
+            desc = open(f"{node}/device/report_descriptor", "rb").read()
+        except OSError:
+            continue
+        if f"HID_ID=0003:{VID:08X}:{PID:08X}" not in uevent:
+            continue
+        usb = os.path.dirname(os.path.dirname(os.path.realpath(f"{node}/device")))  # .../X-Y (USB device)
+        b = found.setdefault(usb, {"usb": usb, "config": None, "events": None, "dev_id": None, "fw": None})
+        dev = "/dev/" + os.path.basename(node)
+        if bytes([0x06, 0xFF, 0xFF, 0x09, 0x02]) in desc:
+            b["config"] = dev
+        elif bytes([0x06, 0xFF, 0xFF, 0x09, 0x01]) in desc:
+            b["events"] = dev
+    out = []
+    for b in found.values():
+        if not (b["config"] and b["events"]):
+            continue
+        try:
+            with FUN68(b["config"]) as kb:
+                r = kb.query(packet(0x8F))  # GET_USB_VERSION (read-only)
+            if r:
+                b["dev_id"], b["fw"] = r[1] | r[2] << 8, r[7] | r[8] << 8
+        except OSError:
+            pass
+        out.append(b)
+    return out
+
+
+def find_board(dev_id: int | None = None) -> dict:
+    bs = [b for b in boards() if dev_id is None or b["dev_id"] == dev_id]
+    if not bs:
+        what = f"dev_id {dev_id}" if dev_id is not None else "any model"
+        raise FileNotFoundError(f"RY5088 keyboard {VID:04x}:{PID:04x} ({what}) not found")
+    return bs[0]
+
+
 class FUN68:
-    def __init__(self, path: str | None = None, allow_unsafe: bool = False):
-        self.path = path or find_hidraw(2)
+    """Config-interface client for RY5088 keyboards (FUN68, Mars68, ...). Pass dev_id to pick the model."""
+
+    def __init__(self, path: str | None = None, allow_unsafe: bool = False, dev_id: int | None = None):
+        self.events_path = None
+        if path is None:
+            b = find_board(dev_id)
+            path, self.events_path = b["config"], b["events"]
+        self.path = path
         self.allow_unsafe = allow_unsafe
         self.fd = os.open(self.path, os.O_RDWR)
 

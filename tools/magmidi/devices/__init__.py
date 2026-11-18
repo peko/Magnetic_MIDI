@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import importlib
 
-NAMES = ("c80", "fun68")
+NAMES = ("c80", "fun68", "mars68")
 
 
 def load(name: str):

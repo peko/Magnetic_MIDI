@@ -30,7 +30,7 @@ import time
 from . import devices, fit
 from . import score as scoremod
 from .bridge import NOTE_NAMES, Bridge, grab_keyboard, open_output, ungrab
-from .midi import load_config
+from .midi import PEDAL_HELP, PEDALS, load_config
 from .paths import ROOT
 from .tui import (P_ACCOMP, P_GRID, P_HIT, P_LEFT, P_RIGHT, P_WANT, P_WRONG, PianoGeom, base_attr, draw_piano,
                   key_labels, put, setup_piano_colors)
@@ -381,6 +381,7 @@ def main(argv=None):
     ap.add_argument("--config")
     ap.add_argument("--to", metavar="NAME", help="MIDI input port to play into, e.g. FLUID (default: virtual port)")
     ap.add_argument("--port-name", help="virtual MIDI port name (default: device name)")
+    ap.add_argument("--pedal", choices=PEDALS, help=PEDAL_HELP)
     ap.add_argument("--no-grab", action="store_true")
     a = ap.parse_args(argv)
     if not a.score:
@@ -397,7 +398,7 @@ def main(argv=None):
     tonic, mode = sc.detect_key()
     signal.signal(signal.SIGTERM, signal.default_int_handler)
     dev = devices.get(a.device)
-    cfg = load_config(dev.NAME, a.config, scale=mode)
+    cfg = load_config(dev.NAME, a.config, scale=mode, pedal=a.pedal)
     if cfg["layout"] == "piano":
         sys.exit("the trainer needs an in-key layout (layout: thirds)")
     cfg["transpose_keys"] = {}  # the trainer owns the arrows

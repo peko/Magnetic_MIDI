@@ -14,7 +14,7 @@ from .transport import FUN68, Events, packet
 class DepthStream:
     def __init__(self, kb: FUN68, ev: Events | None = None):
         self.kb = kb
-        self.ev = ev or Events()
+        self.ev = ev or Events(getattr(kb, "events_path", None))
         self.n_other = 0
 
     def __enter__(self):

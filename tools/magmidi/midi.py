@@ -46,6 +46,11 @@ COMMON = {
 }
 
 
+PEDALS = ("inverted", "normal", "off")
+PEDAL_HELP = ("Space as sustain pedal: inverted (default; sustain while Space is up), normal (sustain while held), "
+              "off (Space does nothing; use for bowed/looped sounds such as a violin, which would ring forever)")
+
+
 def load_config(device: str, path: str | None = None, **overrides) -> dict:
     """Merged config; for in-key layouts `notes` is generated and `hands` / `degrees` are added."""
     spec = devices.load(device)
@@ -54,7 +59,12 @@ def load_config(device: str, path: str | None = None, **overrides) -> dict:
         import yaml
 
         cfg.update(yaml.safe_load(open(path)) or {})
+    pedal = overrides.pop("pedal", None)
     cfg.update({k: v for k, v in overrides.items() if v is not None})
+    if pedal == "off":
+        cfg["sustain_key"] = None
+    elif pedal in ("normal", "inverted"):
+        cfg["sustain_inverted"] = pedal == "inverted"
     if cfg["layout"] != "piano":
         try:
             cfg["notes"], cfg["hands"], cfg["degrees"] = layouts.build(
@@ -71,6 +81,7 @@ def main(argv=None):
     ap.add_argument("--layout", choices=layouts.LAYOUTS, help="note layout (default: thirds)")
     ap.add_argument("--scale", choices=list(layouts.SCALES), help="scale for in-key layouts (default: major)")
     ap.add_argument("--no-grab", action="store_true", help="don't grab evdev (keys will also type)")
+    ap.add_argument("--pedal", choices=PEDALS, help=PEDAL_HELP)
     ap.add_argument("--port-name", help="virtual MIDI port name (default: device name)")
     ap.add_argument("--to", metavar="NAME", help="connect straight to the MIDI input port containing NAME "
                     "(e.g. FLUID) instead of opening a virtual port")
@@ -81,7 +92,7 @@ def main(argv=None):
     a = ap.parse_args(argv)
     signal.signal(signal.SIGTERM, signal.default_int_handler)  # run the cleanup in `finally` on kill
     dev = devices.get(a.device)
-    cfg = load_config(dev.NAME, a.config, layout=a.layout, scale=a.scale)
+    cfg = load_config(dev.NAME, a.config, layout=a.layout, scale=a.scale, pedal=a.pedal)
     out, port = open_output(a.port_name or dev.PORT_NAME, a.to)
     br = Bridge(dev, cfg, out)
     grabbed = [] if a.no_grab else grab_keyboard(dev)
